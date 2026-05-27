@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import nodemailer from "nodemailer"
 import { generateExcelBuffer } from "@/lib/excel"
 import { SavedRecord } from "@/lib/types"
 
@@ -7,94 +8,12 @@ export const runtime = "nodejs"
 interface RequestBody {
   records: SavedRecord[]
   receiverEmail: string
-  senderName: string
-  senderEmail: string
-  accessToken?: string   // Google OAuth access token (gmail.send 권한)
   ccEmail?: string
+  senderName: string   // 로그인한 사용자 이름 (표시용)
+  senderEmail: string  // 로그인한 사용자 이메일 (Reply-To용)
 }
 
-/** RFC 2047 인코딩 (한글 헤더 처리) */
-function encodeHeader(text: string): string {
-  return `=?UTF-8?B?${Buffer.from(text).toString("base64")}?=`
-}
-
-/**
- * Gmail API로 이메일 발송
- * - multipart/mixed: HTML 본문 + Excel 첨부
- * - RFC 2822 메시지를 base64url 인코딩하여 전송
- */
-async function sendViaGmailAPI(
-  accessToken: string,
-  opts: {
-    from: string
-    fromName: string
-    to: string
-    cc?: string
-    subject: string
-    htmlBody: string
-    excelBuffer: Buffer
-    fileName: string
-  }
-): Promise<{ ok: boolean; error?: string }> {
-  const boundary = `_boundary_${Date.now()}_`
-
-  const lines: string[] = [
-    `MIME-Version: 1.0`,
-    `From: ${encodeHeader(opts.fromName)} <${opts.from}>`,
-    `To: ${opts.to}`,
-  ]
-  if (opts.cc) lines.push(`Cc: ${opts.cc}`)
-  lines.push(
-    `Subject: ${encodeHeader(opts.subject)}`,
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset="utf-8"`,
-    `Content-Transfer-Encoding: base64`,
-    ``,
-    Buffer.from(opts.htmlBody, "utf-8").toString("base64"),
-    ``,
-    `--${boundary}`,
-    `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
-    `Content-Disposition: attachment; filename="${opts.fileName}"`,
-    `Content-Transfer-Encoding: base64`,
-    ``,
-    opts.excelBuffer.toString("base64"),
-    ``,
-    `--${boundary}--`,
-  )
-
-  const raw = Buffer.from(lines.join("\r\n"), "utf-8")
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "")
-
-  const response = await fetch(
-    "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ raw }),
-    }
-  )
-
-  if (!response.ok) {
-    const err = (await response.json().catch(() => ({}))) as { error?: { message?: string } }
-    return { ok: false, error: err?.error?.message ?? `Gmail API 오류 (${response.status})` }
-  }
-  return { ok: true }
-}
-
-/** HTML 이메일 본문 생성 */
-function buildHtmlBody(
-  senderName: string,
-  senderEmail: string,
-  records: SavedRecord[]
-): string {
+function buildHtmlBody(senderName: string, senderEmail: string, records: SavedRecord[]): string {
   const today = new Date().toLocaleDateString("ko-KR")
   const total = records.reduce((s, r) => s + r.amount, 0)
 
@@ -124,16 +43,15 @@ function buildHtmlBody(
     <div style="padding:20px 24px;">
       <p style="margin:0 0 4px 0;">보고일: <strong>${today}</strong> &nbsp;|&nbsp; 건수: <strong>${records.length}건</strong> &nbsp;|&nbsp; 합계: <strong style="color:#be123c;">${total.toLocaleString("ko-KR")}원</strong></p>
       <p style="margin:0 0 16px 0;color:#57534e;font-size:0.88em;">작성자: ${senderName} (${senderEmail})</p>
-
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:0.9em;">
           <thead>
             <tr style="background:#1c1917;color:#fff;">
-              <th style="padding:10px;border:1px solid #292524;text-align:center;">날짜</th>
-              <th style="padding:10px;border:1px solid #292524;text-align:center;">사용자</th>
+              <th style="padding:10px;border:1px solid #292524;">날짜</th>
+              <th style="padding:10px;border:1px solid #292524;">사용자</th>
               <th style="padding:10px;border:1px solid #292524;text-align:right;">금액(원)</th>
-              <th style="padding:10px;border:1px solid #292524;text-align:center;">카테고리</th>
-              <th style="padding:10px;border:1px solid #292524;text-align:center;">비고</th>
+              <th style="padding:10px;border:1px solid #292524;">카테고리</th>
+              <th style="padding:10px;border:1px solid #292524;">비고</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -146,7 +64,6 @@ function buildHtmlBody(
           </tfoot>
         </table>
       </div>
-
       <p style="margin:20px 0 0;font-size:0.8em;color:#57534e;">
         ※ 엑셀 파일이 첨부되어 있습니다. 확인 후 결재 처리 부탁드립니다.
       </p>
@@ -159,7 +76,7 @@ function buildHtmlBody(
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as RequestBody
-    const { records, receiverEmail, senderName, senderEmail, accessToken, ccEmail } = body
+    const { records, receiverEmail, ccEmail, senderName, senderEmail } = body
 
     if (!records?.length) {
       return NextResponse.json({ error: "전송할 데이터가 없습니다." }, { status: 400 })
@@ -167,36 +84,51 @@ export async function POST(req: NextRequest) {
     if (!receiverEmail) {
       return NextResponse.json({ error: "수신자 이메일이 없습니다." }, { status: 400 })
     }
-    if (!accessToken) {
+
+    const smtpServer   = process.env.SMTP_SERVER   ?? "smtp.naver.com"
+    const smtpPort     = parseInt(process.env.SMTP_PORT ?? "587", 10)
+    const smtpUser     = process.env.SMTP_USER     ?? ""
+    const smtpPassword = process.env.SMTP_PASSWORD ?? ""
+
+    if (!smtpUser || !smtpPassword) {
       return NextResponse.json(
-        { error: "Gmail 발송 권한이 없습니다. Google 계정으로 다시 로그인해주세요." },
-        { status: 401 }
+        { error: "이메일 서버 설정이 완료되지 않았습니다. Vercel 환경변수(SMTP_USER, SMTP_PASSWORD)를 확인하세요." },
+        { status: 500 }
       )
     }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpServer,
+      port: smtpPort,
+      secure: false,
+      auth: { user: smtpUser, pass: smtpPassword },
+      tls: { rejectUnauthorized: false },
+    })
 
     const excelBuffer = generateExcelBuffer(records)
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, "")
     const total = records.reduce((s, r) => s + r.amount, 0)
-    const subject = `[법인카드 지출보고] ${new Date().toLocaleDateString("ko-KR")} · ${records.length}건 · ${total.toLocaleString("ko-KR")}원`
+    const subject = `[법인카드 지출보고] ${new Date().toLocaleDateString("ko-KR")} · ${records.length}건 · ${total.toLocaleString("ko-KR")}원 — ${senderName}`
 
-    const result = await sendViaGmailAPI(accessToken, {
-      from: senderEmail,
-      fromName: senderName,
+    await transporter.sendMail({
+      from: `"새모양 F&B 경비관리" <${smtpUser}>`,
+      replyTo: senderEmail ? `"${senderName}" <${senderEmail}>` : undefined,
       to: receiverEmail,
       cc: ccEmail || undefined,
       subject,
-      htmlBody: buildHtmlBody(senderName, senderEmail, records),
-      excelBuffer,
-      fileName: `Receipt_Report_${today}.xlsx`,
+      html: buildHtmlBody(senderName, senderEmail, records),
+      attachments: [
+        {
+          filename: `Receipt_Report_${today}.xlsx`,
+          content: excelBuffer,
+          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      ],
     })
-
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
-    }
 
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error("이메일 발송 오류:", err)
-    return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 })
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

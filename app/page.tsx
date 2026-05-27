@@ -148,21 +148,10 @@ export default function Home() {
   const handleSendEmail = async () => {
     if (savedRecords.length === 0) { showToast("전송할 내역이 없습니다.", "err"); return }
 
-    // 카카오 로그인은 Gmail 발송 불가
-    if (session?.provider === "kakao") {
-      showToast("이메일 발송은 Google 계정 로그인이 필요합니다.", "err")
-      return
-    }
-
     const receiverEmail = getReceiverEmail()
     if (!receiverEmail) {
       setShowSettings(true)
       showToast("먼저 수신자 이메일을 설정해주세요.", "err")
-      return
-    }
-
-    if (session?.error === "RefreshAccessTokenError") {
-      showToast("세션이 만료되었습니다. 다시 로그인해주세요.", "err")
       return
     }
 
@@ -176,7 +165,6 @@ export default function Home() {
           receiverEmail,
           senderName: session?.user?.name ?? "경비관리 시스템",
           senderEmail: session?.user?.email ?? "",
-          accessToken: session?.accessToken,
         }),
       })
       const data = (await res.json()) as { success?: boolean; error?: string }
