@@ -27,7 +27,7 @@ export default function LoginScreen() {
             lineHeight: 1.6,
           }}
         >
-          회사 계정으로 로그인하면<br />
+          허가된 임직원 계정으로 로그인해주세요.<br />
           별도 이메일 설정 없이 바로 사용 가능합니다.
         </p>
 
