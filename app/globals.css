@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   조선일보명조체 자가 호스팅 방법:
+   1. 조선일보명조체 폰트 파일(.woff2)을 /public/fonts/ 에 추가
+   2. 아래 주석 해제 후 Noto Serif KR 보다 우선순위 높게 설정
+   @font-face {
+     font-family: '조선일보명조체';
+     src: url('/fonts/ChosunilboNM.woff2') format('woff2');
+     font-weight: normal;
+     font-style: normal;
+   }
+   ============================================ */
+
+:root {
+  --font-primary: 'Noto Serif KR', '조선일보명조체', 'Georgia', serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: #f0ede8;
+  color: #1a1a2e;
+  min-height: 100vh;
+  /* 모바일 스크롤 최적화 */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 입력 폼 기본 스타일 통일 */
+input[type="date"],
+input[type="number"],
+input[type="text"],
+select,
+textarea {
+  font-family: var(--font-primary);
+}
+
+/* 모바일 input zoom 방지 (iOS) */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* 테이블 가로 스크롤 힌트 (모바일) */
+.scroll-hint::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.9));
+  pointer-events: none;
+}
+
+/* 부드러운 로딩 애니메이션 */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 버튼 터치 피드백 */
+button:active {
+  transform: scale(0.97);
+}
