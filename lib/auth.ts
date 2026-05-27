@@ -26,7 +26,13 @@ export const authOptions: AuthOptions = {
     // ALLOWED_EMAILS 환경변수에 콤마로 구분된 이메일 목록을 설정하세요.
     // 예) ALLOWED_EMAILS=admin@company.com,user@company.com
     // 값이 비어있으면 모든 이메일 허용 (개발 환경 편의를 위해)
-    async signIn({ user }) {
+    //
+    // ※ 카카오는 비즈 앱 전환 없이는 이메일을 제공하지 않으므로
+    //    provider가 kakao인 경우 이메일 체크를 건너뜁니다.
+    async signIn({ user, account }) {
+      // 카카오는 이메일 미제공 → 화이트리스트 체크 생략
+      if (account?.provider === "kakao") return true
+
       const raw = process.env.ALLOWED_EMAILS ?? ""
       const allowedEmails = raw
         .split(",")
