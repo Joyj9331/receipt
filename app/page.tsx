@@ -10,12 +10,12 @@ import ReceiptCard from "@/components/ReceiptCard"
 import SummaryTable from "@/components/SummaryTable"
 import SettingsModal, { getReceiverEmail } from "@/components/SettingsModal"
 import { ReceiptItem, SavedRecord } from "@/lib/types"
-import { STAFF_LIST } from "@/lib/constants"
 import { loadRecords, saveRecords, clearRecords } from "@/lib/storage"
 import { downloadExcel } from "@/lib/excel"
 
 export default function Home() {
   const { data: session, status } = useSession()
+  const [staffList, setStaffList] = useState<string[]>([])
   const [receipts, setReceipts] = useState<ReceiptItem[]>([])
   const [savedRecords, setSavedRecords] = useState<SavedRecord[]>([])
   const [isSending, setIsSending] = useState(false)
@@ -24,7 +24,7 @@ export default function Home() {
   const [fontSize, setFontSize] = useState(18)
   const fontSizeRef = useRef(18)
 
-  // localStorage 로드
+  // localStorage 로드 + 직원 목록 fetch
   useEffect(() => {
     setSavedRecords(loadRecords())
     const saved = parseInt(localStorage.getItem("app_font_size") ?? "18", 10)
@@ -33,6 +33,13 @@ export default function Home() {
       fontSizeRef.current = saved
       document.body.style.fontSize = saved + "px"
     }
+    // 서버 환경변수에서 직원 목록 불러오기
+    fetch("/api/staff")
+      .then((r) => r.json())
+      .then((data: { staff: string[] }) => {
+        if (data.staff?.length > 0) setStaffList(data.staff)
+      })
+      .catch(() => {})
   }, [])
 
   const handleFontSize = (delta: number) => {
@@ -92,7 +99,7 @@ export default function Home() {
           isOcrLoading: false,
           date: today,
           amount: 0,
-          user: STAFF_LIST[0],
+          user: staffList[0] ?? "",
           category: "식사",
           companions: [],
           note: "",
@@ -251,6 +258,7 @@ export default function Home() {
                 key={r.id}
                 receipt={r}
                 index={i}
+                staffList={staffList}
                 onUpdate={(u) => updateReceipt(r.id, u)}
                 onRemove={() => removeReceipt(r.id)}
               />

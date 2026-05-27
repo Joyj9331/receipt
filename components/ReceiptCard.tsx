@@ -3,16 +3,17 @@
 import { useState } from "react"
 import Image from "next/image"
 import { ReceiptItem } from "@/lib/types"
-import { STAFF_LIST, CATEGORY_LIST } from "@/lib/constants"
+import { CATEGORY_LIST } from "@/lib/constants"
 
 interface Props {
   receipt: ReceiptItem
   index: number
+  staffList: string[]
   onUpdate: (updates: Partial<ReceiptItem>) => void
   onRemove: () => void
 }
 
-export default function ReceiptCard({ receipt, index, onUpdate, onRemove }: Props) {
+export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRemove }: Props) {
   const [collapsed, setCollapsed] = useState(false)
 
   const toggleCompanion = (name: string) => {
@@ -167,9 +168,13 @@ export default function ReceiptCard({ receipt, index, onUpdate, onRemove }: Prop
                 value={receipt.user}
                 onChange={(e) => onUpdate({ user: e.target.value })}
               >
-                {STAFF_LIST.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {staffList.length === 0 ? (
+                  <option value="">— 직원 없음 (관리자에게 문의) —</option>
+                ) : (
+                  staffList.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -210,7 +215,7 @@ export default function ReceiptCard({ receipt, index, onUpdate, onRemove }: Prop
             <div>
               <label className="form-label">👥 동반직원 (중복 선택)</label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {STAFF_LIST.filter((s) => s !== receipt.user).map((name) => (
+                {staffList.filter((s) => s !== receipt.user).map((name) => (
                   <button
                     key={name}
                     type="button"
