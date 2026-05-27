@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>달빛고 스마트 발주 시스템 v3.6</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Chosunilbo_myungjo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/Chosunilbo_myungjo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --bg-page: #F5F4F1;        
+            --bg-card: #FDFBF7;        
+            --text-main: #1c1917;      
+            --text-sub: #57534e;       
+            --border-thick: #292524;   
+            --border-thin: #d6d3d1;    
+            --point-color: #be123c;    
+            --safe-color: #047857;     /* 안전재고 활성화 컬러 */
+        }
+
+        body {
+            font-family: 'Chosunilbo_myungjo', serif !important;
+            font-weight: 700 !important;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            font-size: 20px; 
+            line-height: 1.6;
+            letter-spacing: -0.02em;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; position: relative; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px double var(--border-thick);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        header h1 { 
+            margin: 0; font-size: 1.6em; font-weight: 900 !important; 
+            letter-spacing: -0.05em; color: var(--text-main); 
+            word-break: keep-all;
+        }
+
+        .top-controls { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        
+        .control-btn, .tab-btn, .action-btn, .day-btn {
+            word-break: keep-all;
+            white-space: nowrap;
+        }
+
+        .control-btn {
+            padding: 8px 14px; border: 1px solid var(--border-thick);
+            background: var(--bg-card); color: var(--text-main);
+            font-family: inherit; font-weight: 700; cursor: pointer;
+            border-radius: 6px; font-size: 0.85em;
+        }
+        .control-btn:active { background: var(--border-thick); color: #fff; }
+        .control-btn.tutorial { background: var(--text-main); color: #fff; border: none; }
+
+        .tabs { display: flex; gap: 0; margin-bottom: 25px; border-bottom: 3px double var(--border-thin); }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none; background: transparent; cursor: pointer;
+            font-family: inherit; font-weight: 700; font-size: 1.1em;
+            color: var(--text-sub); border-bottom: 3px solid transparent; margin-bottom: -3px;
+        }
+        .tab-btn.active { color: var(--text-main); border-bottom: 3px solid var(--text-main); font-weight: 900 !important; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background: var(--bg-card); padding: 25px; border: 1px solid var(--border-thin);
+            border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        /* 캡처 영역 전용 스타일 (배경색 고정) */
+        #capture-area {
+            background: var(--bg-card); padding: 15px; border-radius: 8px;
+        }
+
+        .admin-section-title {
+            font-size: 1.1em; font-weight: 900 !important; color: var(--text-main);
+            margin: 0 0 20px 0; padding-bottom: 8px; border-bottom: 3px double var(--border-thick);
+            letter-spacing: 0.05em; word-break: keep-all;
+            display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;
+        }
+
+        /* 요일 선택 */
+        .day-toggles { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+        .day-btn {
+            flex: 1; min-width: 40px; padding: 12px 0; text-align: center;
+            border: 1px solid var(--border-thin); background: var(--bg-card); border-radius: 6px;
+            cursor: pointer; font-family: inherit; font-weight: 700; font-size: 1em; color: var(--text-sub);
+        }
+        .day-btn.active { background: var(--text-main); color: #fff; border-color: var(--text-main); }
+
+        .status-box {
+            background: #fff; padding: 15px; border: 1px solid var(--border-thin);
+            text-align: center; margin-top: 15px; font-size: 1em; border-radius: 6px;
+        }
+        .status-box span { color: var(--point-color); font-size: 1.3em; font-weight: 900 !important; text-decoration: underline; }
+
+        /* 결과표 상단 액션 버튼 그룹 */
+        .result-actions { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .action-btn {
+            flex: 1; padding: 12px; border: 2px solid var(--text-main);
+            background: var(--bg-card); color: var(--text-main); cursor: pointer;
+            font-family: inherit; font-weight: 900 !important; font-size: 0.95em; border-radius: 6px;
+            text-align: center;
+        }
+        .action-btn.safe-stock.active { background: var(--safe-color); color: #fff; border-color: var(--safe-color); }
+        .action-btn.stock-mode-on { background: var(--text-main); color: #fff; border-color: var(--text-main); }
+        .action-btn.capture { background: var(--text-main); color: #fff; }
+
+        /* 입력 폼 */
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { display: block; font-size: 0.9em; margin-bottom: 5px; color: var(--text-sub); font-weight: 700; word-break: keep-all; }
+        
+        .input-group input {
+            padding: 12px 5px; border: 1px solid var(--border-thin); font-size: 1.2em;
+            font-family: inherit; font-weight: 900 !important; width: 100%; box-sizing: border-box;
+            background: #fff; text-align: center; border-radius: 6px;
+        }
+        .input-group input:focus { outline: 2px solid var(--text-main); border-color: transparent; }
+
+        /* 드롭다운 스타일 */
+        .inline-select {
+            margin-left: 8px; padding: 4px 8px; border: 1px solid var(--text-main); border-radius: 4px;
+            background-color: #fff; font-family: inherit; font-weight: 900 !important;
+            font-size: 0.85em; color: var(--point-color); cursor: pointer;
+            -webkit-appearance: none; appearance: none; text-align: center;
+        }
+
+        /* 테이블 (PC 뷰) */
+        .table-responsive { overflow-x: auto; border: 1px solid var(--border-thin); border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; background: #fff; white-space: nowrap; }
+        th, td { padding: 15px 10px; text-align: center; border-bottom: 1px solid var(--border-thin); font-size: 0.95em; }
+        th { background-color: var(--bg-card); color: var(--text-main); border-bottom: 2px solid var(--text-main); }
+        .highlight-row { background-color: #faf9f7; }
+        .total-box { color: var(--point-color); font-weight: 900 !important; font-size: 1.15em; }
+
+        /* 튜토리얼 레이어 */
+        #tutorial-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); backdrop-filter: blur(3px); z-index: 9900; }
+        .tutorial-focus { position: relative !important; z-index: 9950 !important; background-color: var(--bg-card) !important; box-shadow: 0 0 0 4px var(--text-main), 0 10px 30px rgba(0,0,0,0.5) !important; border-radius: 8px !important; }
+        #tutorial-tooltip { display: none; position: absolute; background: #fff; padding: 20px; border-radius: 6px; z-index: 10000; width: 280px; font-family: inherit; font-weight: 700; border: 3px solid var(--text-main); box-shadow: 8px 8px 0px rgba(0,0,0,0.2); transition: top 0.3s, left 0.3s; }
+        #tutorial-tooltip p { margin: 0 0 20px 0; font-size: 1em; line-height: 1.5; color: var(--text-main); word-break: keep-all; }
+        #tutorial-tooltip button { width: 100%; padding: 12px; background: var(--text-main); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-weight: 900 !important; font-size: 1em; }
+        .tooltip-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-bottom: 15px solid var(--text-main); }
+        .tooltip-arrow.bottom { top: auto; bottom: -15px; border-bottom: none; border-top: 15px solid var(--text-main); }
+
+        /* 모바일 UX (화면 폭 600px 이하) */
+        .reset-all-btn {
+            width: 100%; margin-top: 15px; padding: 14px;
+            background: var(--bg-card); color: var(--point-color);
+            border: 2px solid var(--point-color); border-radius: 8px;
+            font-family: inherit; font-weight: 900 !important; font-size: 1em;
+            cursor: pointer; letter-spacing: 0.04em;
+        }
+        .reset-all-btn:active { background: var(--point-color); color: #fff; }
+
+        /* 발주 결과 카드 */
+        #result-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+        }
+        .order-card {
+            background: #fff; border: 1px solid var(--border-thin); border-radius: 10px;
+            padding: 15px; display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease, box-shadow 0.3s ease;
+        }
+        .order-card.fly-out {
+            transform: translateX(130%) rotate(6deg) scale(0.92);
+            opacity: 0;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.18);
+            pointer-events: none;
+        }
+        @keyframes oc-pop-in {
+            from { transform: scale(0.96); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .order-card { animation: oc-pop-in 0.25s ease both; }
+        .order-card.urgent { border-color: var(--point-color); border-width: 2px; }
+        .order-card.check-needed { border-color: #c2410c; border-width: 2px; background: #fff8f1; }
+        .oc-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 8px; border-bottom: 2px solid var(--bg-page); gap: 6px;
+        }
+        .oc-name { font-weight: 900 !important; font-size: 1.05em; color: var(--text-main); flex: 1; word-break: keep-all; }
+        .oc-category {
+            font-size: 0.7em; padding: 2px 8px; border-radius: 12px;
+            background: var(--bg-page); color: var(--text-sub); white-space: nowrap;
+        }
+        .oc-body { display: flex; flex-direction: column; gap: 5px; }
+        .oc-row {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-size: 0.88em; color: var(--text-sub);
+        }
+        .oc-row .oc-value { color: var(--text-main); font-weight: 700; font-size: 0.95em; }
+        .oc-stock-row {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--bg-page); padding: 10px 12px; border-radius: 8px; margin-top: 6px;
+        }
+        .oc-stock-row label { font-size: 0.9em; font-weight: 700; color: var(--text-main); flex: 1; }
+        .oc-stock-row input {
+            width: 80px; padding: 8px 6px; border: 1px solid var(--border-thin);
+            border-radius: 6px; text-align: center; font-family: inherit;
+            font-weight: 900 !important; font-size: 1.05em; background: #fff;
+            -webkit-appearance: none; appearance: none;
+        }
+        .oc-stock-row .unit-tag { font-size: 0.85em; color: var(--text-sub); min-width: 24px; }
+        .oc-footer { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 2px solid var(--bg-page); }
+        .oc-recommend { display: flex; justify-content: space-between; align-items: baseline; }
+        .oc-rec-label { font-size: 0.9em; color: var(--text-sub); }
+        .oc-rec-value { font-size: 1.4em; font-weight: 900 !important; color: var(--text-main); letter-spacing: -0.02em; }
+        .oc-rec-value.highlight { color: var(--point-color); }
+        .oc-confirm {
+            width: 100%; padding: 13px; border: none; border-radius: 8px;
+            background: var(--safe-color); color: #fff;
+            font-family: inherit; font-weight: 900 !important; font-size: 1em;
+            cursor: pointer; letter-spacing: 0.02em;
+        }
+        .oc-confirm:active { opacity: 0.85; }
+        .oc-confirm.confirm-check { background: #c2410c; }
+        .oc-confirm.disabled {
+            background: #e5e3df; color: var(--text-sub); cursor: default; pointer-events: none;
+        }
+
+        /* 레시피 카드 */
+        #recipe-settings-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+        }
+        .recipe-card {
+            background: #fff; border: 1px solid var(--border-thin); border-radius: 8px;
+            padding: 14px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .rc-title {
+            margin: 0 0 6px 0; padding-bottom: 8px; border-bottom: 2px solid var(--bg-page);
+            font-weight: 900 !important; font-size: 1em; color: var(--text-main); word-break: keep-all;
+        }
+        .rc-ingredients { display: flex; flex-direction: column; gap: 5px; }
+        .rc-ing {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 8px; background: var(--bg-page); border-radius: 6px;
+        }
+        .rc-ing-name { flex: 1; font-size: 0.88em; color: var(--text-main); word-break: keep-all; }
+        .rc-ing input {
+            width: 70px; padding: 6px 4px; border: 1px solid var(--border-thin);
+            border-radius: 4px; text-align: center; font-family: inherit;
+            font-weight: 900 !important; font-size: 0.95em; background: #fff;
+        }
+        .rc-remove {
+            width: 26px; height: 26px; border: none; border-radius: 50%;
+            background: transparent; color: var(--text-sub); cursor: pointer;
+            font-size: 1.2em; line-height: 1; padding: 0;
+        }
+        .rc-remove:hover { background: var(--border-thin); color: var(--point-color); }
+        .rc-empty { color: var(--text-sub); font-size: 0.85em; padding: 8px; text-align: center; }
+        .rc-add {
+            margin-top: 6px; padding: 8px; border: 1px dashed var(--border-thin);
+            border-radius: 6px; background: #fff; font-family: inherit; font-size: 0.9em;
+            color: var(--text-sub); cursor: pointer; width: 100%;
+        }
+        .rc-add:hover { border-color: var(--text-main); color: var(--text-main); }
+
+        /* 카테고리 섹션 */
+        .category-section { margin-bottom: 20px; }
+        .category-title {
+            font-size: 0.95em; font-weight: 900 !important;
+            color: var(--text-main); margin: 0 0 10px 0; padding: 8px 12px;
+            background: var(--bg-page); border-left: 4px solid var(--point-color);
+            border-radius: 4px; letter-spacing: 0.03em;
+        }
+        .category-section:last-child { margin-bottom: 0; }
+
+        /* 소모품/특수 품목 설정 */
+        .special-item-row {
+            border: 1px solid var(--border-thin); border-radius: 8px;
+            padding: 12px 15px; margin-bottom: 10px; background: #fff;
+        }
+        .si-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+        .si-name { font-weight: 900 !important; font-size: 1em; flex: 1; }
+        .si-type-badge {
+            font-size: 0.68em; padding: 2px 7px; border-radius: 10px;
+            background: var(--bg-page); color: var(--text-sub);
+            border: 1px solid var(--border-thin); white-space: nowrap;
+        }
+        .si-toggle-btn {
+            padding: 4px 12px; border-radius: 12px; border: none; cursor: pointer;
+            font-family: inherit; font-weight: 700; font-size: 0.78em; white-space: nowrap;
+        }
+        .si-toggle-btn.on { background: var(--safe-color); color: #fff; }
+        .si-toggle-btn.off { background: var(--border-thin); color: var(--text-sub); }
+        .si-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .si-control-group {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.85em; color: var(--text-sub);
+        }
+        .si-control-group input {
+            width: 72px; padding: 6px 4px; border: 1px solid var(--border-thin);
+            border-radius: 4px; text-align: center;
+            font-family: inherit; font-weight: 700; font-size: 0.95em;
+        }
+        .revenue-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 5px 0; flex-wrap: wrap; gap: 10px;
+        }
+        .revenue-row label { font-size: 1em; font-weight: 700; }
+        .revenue-input-wrap { display: flex; align-items: center; gap: 8px; }
+        .revenue-input-wrap input {
+            width: 160px; text-align: right; padding: 10px;
+            font-size: 1.1em; border: 1px solid var(--border-thin);
+            border-radius: 6px; font-family: inherit; font-weight: 900 !important;
+        }
+        .revenue-input-wrap span { font-size: 0.9em; color: var(--text-sub); }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; font-size: 18px; }
+            #result-cards-container { grid-template-columns: 1fr; gap: 10px; }
+            #recipe-settings-container { grid-template-columns: 1fr; gap: 10px; }
+            .rc-ing input { width: 80px; font-size: 1em; padding: 7px 4px; }
+            .order-card { padding: 13px; }
+            .oc-name { font-size: 1em; }
+            .oc-stock-row input { width: 76px; font-size: 1em; padding: 9px 4px; }
+            .oc-rec-value { font-size: 1.3em; }
+            .oc-confirm { padding: 14px; font-size: 1.02em; }
+            header { flex-direction: column; gap: 15px; text-align: center; border-bottom: 2px solid var(--border-thick); }
+            header h1 { font-size: 1.4em; }
+            .top-controls { justify-content: center; width: 100%; }
+            .card { padding: 15px; } 
+            #capture-area { padding: 10px 0; }
+            
+            .grid-inputs { display: flex; flex-direction: column; gap: 0; }
+            .input-group { 
+                flex-direction: row; justify-content: space-between; align-items: center; 
+                padding: 12px 5px; border-bottom: 1px solid #eee; 
+            }
+            .input-group label { margin: 0; font-size: 1em; color: var(--text-main); }
+            
+            .input-group input { 
+                width: 120px; text-align: right; padding: 10px; font-size: 1.1em;
+                border: 1px solid var(--border-thin); background: #fdfdfd; border-radius: 6px;
+                -webkit-appearance: none; appearance: none;
+            }
+
+            .day-toggles { gap: 4px; }
+            .day-btn { padding: 10px 0; font-size: 0.9em; }
+
+            .table-responsive { border: none; background: transparent; }
+            table, thead, tbody, th, td, tr { display: block; width: 100%; }
+            thead { display: none; } 
+            tr { 
+                background: #fff; margin-bottom: 15px; border: 1px solid var(--border-thin); 
+                border-radius: 8px; padding: 15px 15px 5px 15px; box-sizing: border-box;
+            }
+            td { 
+                display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+                padding: 8px 0; border: none; border-bottom: 1px dashed #eee; text-align: right; 
+                font-size: 0.95em;
+            }
+            td:last-child { 
+                border-bottom: none; font-size: 1.15em; padding-top: 12px; padding-bottom: 10px;
+            }
+            td::before { 
+                content: attr(data-label); font-weight: 700; color: var(--text-sub); text-align: left; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+    <header id="top-header">
+        <h1>달빛고 스마트 발주 시스템</h1>
+        <div class="top-controls">
+            <button class="control-btn" onclick="changeFontSize(-2)">가-</button>
+            <button class="control-btn" onclick="resetFontSize()">기본크기</button>
+            <button class="control-btn" onclick="changeFontSize(2)">가+</button>
+            <button class="control-btn tutorial" onclick="startTutorial()">사용 가이드</button>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('calc', this)">발주 계산기</button>
+        <button class="tab-btn" onclick="openTab('admin', this)">기준 설정</button>
+    </div>
+
+    <div id="calc" class="tab-content active">
+        
+        <div class="card" id="step-delivery">
+            <h3 class="admin-section-title">
+                <span>정기 배송일 (입고일) 설정</span>
+                <span style="font-size: 0.7em; font-weight:normal; color: var(--text-sub);">*자동 저장됨</span>
+            </h3>
+            <div class="day-toggles">
+                <button class="day-btn" onclick="toggleDay(1)">월</button>
+                <button class="day-btn" onclick="toggleDay(2)">화</button>
+                <button class="day-btn" onclick="toggleDay(3)">수</button>
+                <button class="day-btn" onclick="toggleDay(4)">목</button>
+                <button class="day-btn" onclick="toggleDay(5)">금</button>
+                <button class="day-btn" onclick="toggleDay(6)">토</button>
+                <button class="day-btn" onclick="toggleDay(0)">일</button>
+            </div>
+            <div class="status-box">
+                <div id="today-display" style="color:var(--text-sub); font-size:0.85em; margin-bottom:5px;">요일 로딩 중...</div>
+                <div id="multiplier-display">배송 요일을 먼저 선택해 주십시오.</div>
+            </div>
+        </div>
+
+        <div class="card" id="step-revenue">
+            <h3 class="admin-section-title">
+                <span>일 예상 매출</span>
+                <span style="font-size: 0.7em; font-weight:normal; color: var(--point-color);">*판매량×단가 자동 계산</span>
+            </h3>
+            <div class="revenue-row">
+                <label>일 예상 매출</label>
+                <div class="revenue-input-wrap">
+                    <input type="number" inputmode="numeric" id="revenue-input" placeholder="0"
+                        oninput="revenueManualOverride=true; dailyRevenue=parseFloat(this.value)||0; autoSaveSettings(); calculate();">
+                    <span>원</span>
+                </div>
+            </div>
+            <div style="margin-top:8px; display:flex; justify-content: space-between; align-items: center; font-size:0.8em; color:var(--text-sub);">
+                <span id="revenue-auto-info">자동 계산값: 0원</span>
+                <button class="control-btn" style="padding:4px 10px; font-size:0.78em;" onclick="resetRevenueOverride()">자동값 적용</button>
+            </div>
+        </div>
+
+        <div class="card" id="step-sales">
+            <h3 class="admin-section-title">
+                <span>일평균 예상 판매량 입력</span>
+                <span style="font-size: 0.7em; font-weight:normal; color: var(--text-sub);">*자동 저장됨</span>
+            </h3>
+            <div class="grid-inputs" id="sales-inputs-container"></div>
+        </div>
+
+        <div class="card" id="step-result">
+            <h3 class="admin-section-title">최종 권장 발주량</h3>
+
+            <div class="result-actions">
+                <button class="action-btn safe-stock" id="btn-safe-stock" onclick="toggleSafetyStock(this)">[안전재고 10% 추가]</button>
+                <button class="action-btn" id="btn-stock-mode" onclick="toggleStockMode(this)">[재고 입력 OFF]</button>
+                <button class="action-btn capture" onclick="captureScreen()">[화면캡쳐]</button>
+            </div>
+
+            <div id="capture-area">
+                <div id="result-cards-container"></div>
+                <p id="result-empty-msg" style="text-align:center; color:var(--text-sub); padding: 30px 10px;">판매량을 기재하면 발주 카드가 나타납니다.</p>
+            </div>
+
+            <button class="action-btn reset-all-btn" onclick="resetAll()">[전체 초기화]</button>
+            <p style="font-size:0.78em; color:var(--text-sub); margin:8px 0 0 0; text-align:center;">
+                * 항목별 [발주완료] 버튼을 누르면 그 품목의 재고가 자동 갱신됩니다<br>
+                * 전체 초기화: 판매량·매출 입력값 리셋 (재고·기준설정은 유지)
+            </p>
+        </div>
+    </div>
+
+    <div id="admin" class="tab-content">
+        <div class="card">
+            <h3 class="admin-section-title">메뉴별 단가 (매출 자동 계산용)</h3>
+            <div id="menu-prices-container"></div>
+        </div>
+
+        <div class="card">
+            <h3 class="admin-section-title">발주 품목 규격</h3>
+            <div id="all-items-settings-container"></div>
+        </div>
+
+        <div class="card">
+            <h3 class="admin-section-title">레시피 상세 설정</h3>
+            <div id="recipe-settings-container"></div>
+        </div>
+    </div>
+</div>
+
+<div id="tutorial-overlay"></div>
+<div id="tutorial-tooltip">
+    <div class="tooltip-arrow" id="tooltip-arrow"></div>
+    <p id="tutorial-text"></p>
+    <button onclick="nextTutorialStep()" id="tutorial-next-btn">다음 단계</button>
+</div>
+
+<script>
+    var currentFontSize = 20; 
+    function changeFontSize(step) {
+        currentFontSize += step;
+        if(currentFontSize < 16) currentFontSize = 16;
+        if(currentFontSize > 30) currentFontSize = 30;
+        document.body.style.fontSize = currentFontSize + 'px';
+    }
+    function resetFontSize() { currentFontSize = 20; document.body.style.fontSize = '20px'; }
+
+    var logisticsData = {
+        '자반고등어': 20,
+        '삼치': 24, '임연수': 28, '가자미': 12,
+        '홍뽈락': 72, '갈치(원물)': 13, '아이스홍시': 144, '백미새우': 600,
+        '국내산고등어(조림용)': 28,
+        '(신)제육고기 3kg': 17,
+        '고추장 불고기 양념장(5kg)': 42.5,
+        '척롤(5kg)': 27,
+        '(통통이) 함박스테이크': 1
+    };
+
+    var logisticsBoxUnit = {
+        '자반고등어': 'Box', '삼치': 'Box', '임연수': 'Box', '가자미': 'Box',
+        '홍뽈락': 'Box', '갈치(원물)': 'Box', '아이스홍시': 'Box', '백미새우': 'Box',
+        '국내산고등어(조림용)': 'Box',
+        '(신)제육고기 3kg': '봉지',
+        '고추장 불고기 양념장(5kg)': '팩',
+        '척롤(5kg)': '봉지',
+        '(통통이) 함박스테이크': '개'
+    };
+
+    var recipeData = {
+        '모듬구이 2인': { '자반고등어': 0.5, '삼치': 0.5, '홍뽈락': 1, '가자미': 1, '아이스홍시': 1, '백미새우': 4 },
+        '모듬구이 3인': { '자반고등어': 0.5, '삼치': 0.5, '홍뽈락': 1, '가자미': 1, '아이스홍시': 1, '백미새우': 6 },
+        '모듬구이 4인': { '자반고등어': 1, '삼치': 0.5, '홍뽈락': 1, '가자미': 1, '갈치(원물)': 0.5, '아이스홍시': 2, '백미새우': 8 },
+        '달빛/반상': { '자반고등어': 0.5 },
+        '보름/한상': { '자반고등어': 0.5, '삼치': 0.5, '(신)제육고기 3kg': 1, '고추장 불고기 양념장(5kg)': 1 },
+        '고등어(반)': { '자반고등어': 0.5 },
+        '고등어(1마리)': { '자반고등어': 1 },
+        '삼치(반)': { '삼치': 0.5 },
+        '삼치(1마리)': { '삼치': 1 },
+        '임연수구이': { '임연수': 1 },
+        '갈치구이': { '갈치(원물)': 1 },
+        '고추장불고기 (단품)': { '(신)제육고기 3kg': 1, '고추장 불고기 양념장(5kg)': 1 },
+        '고추장불고기 (옵션)': { '(신)제육고기 3kg': 1, '고추장 불고기 양념장(5kg)': 1 },
+        '소뚝불고기 (단품)': { '척롤(5kg)': 1 },
+        '소뚝불고기 (옵션)': { '척롤(5kg)': 1 },
+        '고등어조림 (단품)': { '국내산고등어(조림용)': 1 },
+        '고등어조림 (옵션)': { '국내산고등어(조림용)': 1 },
+        '포장비(조림)': {},
+        '포장비(구이)': {},
+        '어린이 함박스테이크': { '(통통이) 함박스테이크': 1 }
+    };
+
+    var menuPrices = {
+        '모듬구이 2인': 0, '모듬구이 3인': 0, '모듬구이 4인': 0,
+        '달빛/반상': 0, '보름/한상': 0,
+        '고등어(반)': 0, '고등어(1마리)': 0,
+        '삼치(반)': 0, '삼치(1마리)': 0,
+        '임연수구이': 0, '갈치구이': 0,
+        '고추장불고기 (단품)': 0, '고추장불고기 (옵션)': 0,
+        '소뚝불고기 (단품)': 0, '소뚝불고기 (옵션)': 0,
+        '고등어조림 (단품)': 0, '고등어조림 (옵션)': 0,
+        '포장비(조림)': 0, '포장비(구이)': 0,
+        '어린이 함박스테이크': 0
+    };
+
+    var menuServings = {
+        '모듬구이 2인': 2, '모듬구이 3인': 3, '모듬구이 4인': 4,
+        '달빛/반상': 1, '보름/한상': 1,
+        '고등어(반)': 1, '고등어(1마리)': 1,
+        '삼치(반)': 1, '삼치(1마리)': 1,
+        '임연수구이': 1, '갈치구이': 1,
+        '고추장불고기 (단품)': 1, '고추장불고기 (옵션)': 0,
+        '소뚝불고기 (단품)': 1, '소뚝불고기 (옵션)': 0,
+        '고등어조림 (단품)': 1, '고등어조림 (옵션)': 0,
+        '포장비(조림)': 0, '포장비(구이)': 0,
+        '어린이 함박스테이크': 1
+    };
+
+    var specialItemsData = {
+        '포장용기 대 블랙': { type: 'direct_menu', sourceMenu: '포장비(조림)', unit: '개', logisticsUnit: 1, boxUnit: '박스' },
+        '종이포장용기': { type: 'direct_menu', sourceMenu: '포장비(구이)', unit: '개', logisticsUnit: 1, boxUnit: '박스' },
+        '초밥용 비닐(소)': { type: 'sum_menus', sourceMenus: ['포장비(조림)', '포장비(구이)'], unit: '개', logisticsUnit: 1, boxUnit: '박스' },
+        '통합 포장지(수저집)': { type: 'per_serving', perServing: 1, unit: '개', logisticsUnit: 1, boxUnit: '박스' },
+        '무청시래기': { type: 'per_revenue', per1000000: 0.25, unit: '개', logisticsUnit: 1, toggleable: true, enabled: false, boxUnit: '봉지' },
+        '냉동냉이': { type: 'proportional', refItem: '무청시래기', ratio: 3, unit: '개', logisticsUnit: 1, toggleable: true, enabled: false, boxUnit: '봉지' },
+        '밀떡볶이': { type: 'per_revenue', per1000000: 0.75, unit: '봉지', logisticsUnit: 1, toggleable: true, enabled: false, boxUnit: '봉지' },
+        '야채피클': { type: 'per_revenue', per1000000: 0.125, unit: '팩', logisticsUnit: 1, toggleable: true, enabled: false, boxUnit: '팩' },
+        '두부드림(팩)': { type: 'per_revenue', per1000000: 1.2, unit: '판', logisticsUnit: 1, toggleable: true, enabled: false, boxUnit: '판' },
+        '도토리묵(판)': { type: 'per_revenue', per1000000: 0.5, unit: '판', logisticsUnit: 1, boxUnit: '판' },
+        '겉절이용 양념장': { type: 'per_revenue', per1000000: 0.25, unit: 'kg', logisticsUnit: 3, boxUnit: '팩' },
+        '두부조림용 양념장': { type: 'per_revenue', per1000000: 0.625, unit: 'kg', logisticsUnit: 3, boxUnit: '팩' },
+        '새모양 맛간장소스(말통)': { type: 'proportional_order', refItem: '백미새우', ratio: 0.1667, unit: '개', logisticsUnit: 1, boxUnit: '말통' },
+        '당면': { type: 'per_revenue', per1000000: 0.125, unit: '박스', logisticsUnit: 1, boxUnit: '박스' },
+        '찌개용된장(양지뜰)': { type: 'per_revenue', per1000000: 0.0833, unit: '개', logisticsUnit: 1, boxUnit: '박스' },
+        '누룽지': { type: 'per_revenue', per1000000: 0.0625, unit: '봉지', logisticsUnit: 5, boxUnit: '박스' },
+        '연근채': { type: 'per_revenue', per1000000: 0.25, unit: '박스', logisticsUnit: 1, boxUnit: '박스' },
+        '국물떡볶이소스': { type: 'proportional', refItem: '밀떡볶이', ratio: 1.2, unit: 'kg', logisticsUnit: 5, boxUnit: '팩' },
+        '연근드레싱': { type: 'proportional', refItem: '연근채', ratio: 5, unit: 'kg', logisticsUnit: 3, boxUnit: '팩' }
+    };
+
+    var salesData = {};
+    var selectedDeliveryDays = [];
+    var multiplier = 1;
+    var isSafetyStockActive = false; // 안전재고 활성화 상태
+    var dailyRevenue = 0;
+    var revenueManualOverride = false; // true면 사용자 수동 입력값 유지
+    var currentStock = {}; // 품목별 현재 재고 (박스 단위)
+    var useStockMode = false; // 재고 입력 사용 여부
+    var confirmedItems = {}; // 이번 사이클에서 사용자가 확인 완료한 품목
+    var lastResults = {};  // 직전 calculate() 결과 (발주 완료 처리용)
+    var currentDay = new Date().getDay();
+    var daysKor = ['일', '월', '화', '수', '목', '금', '토'];
+
+    function init() {
+        document.getElementById('today-display').innerHTML = `접속 요일: <strong>${daysKor[currentDay]}요일</strong>`;
+        loadSettings(); // 자동 저장된 설정 불러오기 (판매량 제외)
+        renderAllItemsSettings();
+        renderMenuPrices();
+        renderRecipeEditor();
+        renderSalesInputs();
+        applyStockModeButtonState();
+        calculateMultiplier();
+    }
+
+    function openTab(tabId, element) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        element.classList.add('active');
+    }
+
+    // 설정 자동 저장 로직
+    function autoSaveSettings() {
+        var specialSave = {};
+        for (var si in specialItemsData) {
+            var sv = specialItemsData[si];
+            specialSave[si] = { per1000000: sv.per1000000, ratio: sv.ratio, perServing: sv.perServing, logisticsUnit: sv.logisticsUnit, enabled: sv.enabled, boxUnit: sv.boxUnit };
+        }
+        localStorage.setItem('dalbitgo_settings_v3_6', JSON.stringify({
+            days: selectedDeliveryDays,
+            logistics: logisticsData,
+            logisticsBoxUnit: logisticsBoxUnit,
+            specialItems: specialSave,
+            menuPrices: menuPrices,
+            currentStock: currentStock,
+            useStockMode: useStockMode,
+            salesData: salesData,
+            dailyRevenue: dailyRevenue,
+            revenueManualOverride: revenueManualOverride
+        }));
+    }
+
+    // 설정 불러오기 로직 (초기화 시)
+    function loadSettings() {
+        var saved = JSON.parse(localStorage.getItem('dalbitgo_settings_v3_6'));
+        if (saved) {
+            if(saved.days) {
+                selectedDeliveryDays = saved.days;
+                var btns = document.querySelectorAll('.day-btn');
+                btns.forEach(b => {
+                    var btnDay = parseInt(b.getAttribute('onclick').match(/\d+/)[0]);
+                    if(selectedDeliveryDays.includes(btnDay)) b.classList.add('active');
+                });
+            }
+            if(saved.logistics) {
+                logisticsData = saved.logistics;
+            }
+            if(saved.logisticsBoxUnit) {
+                for (var lk in saved.logisticsBoxUnit) {
+                    if (logisticsBoxUnit[lk] !== undefined) logisticsBoxUnit[lk] = saved.logisticsBoxUnit[lk];
+                }
+            }
+            if(saved.menuPrices) {
+                for (var mk in saved.menuPrices) {
+                    if (menuPrices[mk] !== undefined) menuPrices[mk] = saved.menuPrices[mk];
+                }
+            }
+            if(saved.currentStock) currentStock = saved.currentStock;
+            if(saved.useStockMode !== undefined) useStockMode = saved.useStockMode;
+            if(saved.salesData) salesData = saved.salesData;
+            if(saved.dailyRevenue !== undefined) dailyRevenue = saved.dailyRevenue;
+            if(saved.revenueManualOverride !== undefined) revenueManualOverride = saved.revenueManualOverride;
+            if(saved.specialItems) {
+                for (var sKey in saved.specialItems) {
+                    if (specialItemsData[sKey]) {
+                        var sv = saved.specialItems[sKey];
+                        // 마이그레이션: 사용자 저장값이 의미있는 값(>0 / 비어있지 않음)인 경우에만 덮어씀
+                        // 0이면 코드의 새 default 값 사용
+                        if (sv.per1000000 !== undefined && sv.per1000000 > 0) specialItemsData[sKey].per1000000 = sv.per1000000;
+                        else if (sv.per10000 !== undefined && sv.per10000 > 0) specialItemsData[sKey].per1000000 = sv.per10000 * 100;
+                        if (sv.ratio !== undefined && sv.ratio > 0) specialItemsData[sKey].ratio = sv.ratio;
+                        if (sv.perServing !== undefined && sv.perServing > 0) specialItemsData[sKey].perServing = sv.perServing;
+                        if (sv.logisticsUnit !== undefined && sv.logisticsUnit > 0) specialItemsData[sKey].logisticsUnit = sv.logisticsUnit;
+                        if (sv.enabled !== undefined) specialItemsData[sKey].enabled = sv.enabled;
+                        if (sv.boxUnit !== undefined && sv.boxUnit !== '') specialItemsData[sKey].boxUnit = sv.boxUnit;
+                    }
+                }
+            }
+        }
+    }
+
+    function toggleDay(dayInt) {
+        var idx = selectedDeliveryDays.indexOf(dayInt);
+        if(idx > -1) selectedDeliveryDays.splice(idx, 1);
+        else selectedDeliveryDays.push(dayInt);
+        
+        var btns = document.querySelectorAll('.day-btn');
+        btns.forEach(b => {
+            var btnDay = parseInt(b.getAttribute('onclick').match(/\d+/)[0]);
+            if(selectedDeliveryDays.includes(btnDay)) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        
+        autoSaveSettings(); // 요일 변경 시 즉시 저장
+        calculateMultiplier();
+    }
+
+    function calculateMultiplier() {
+        if (selectedDeliveryDays.length === 0) {
+            multiplier = 1;
+            document.getElementById('multiplier-display').innerHTML = "배송 요일을 선택해 주십시오.";
+            calculate();
+            return;
+        }
+
+        var sortedDays = [...selectedDeliveryDays].sort();
+        var nextDeliveryOffset = -1;
+        for (var i = 1; i <= 7; i++) {
+            if (sortedDays.includes((currentDay + i) % 7)) {
+                nextDeliveryOffset = i;
+                break;
+            }
+        }
+
+        var d1Day = (currentDay + nextDeliveryOffset) % 7;
+        var secondDeliveryOffset = -1;
+        for (var j = 1; j <= 7; j++) {
+            if (sortedDays.includes((d1Day + j) % 7)) {
+                secondDeliveryOffset = j;
+                break;
+            }
+        }
+
+        multiplier = secondDeliveryOffset > 0 ? secondDeliveryOffset : 1;
+        document.getElementById('multiplier-display').innerHTML = `다음 배송일까지 <span>${multiplier}</span>일치 물량이 필요합니다.`;
+        calculate();
+    }
+
+    var itemCategories = [
+        { name: '식재료', items: ['자반고등어','삼치','임연수','가자미','홍뽈락','갈치(원물)','아이스홍시','백미새우','국내산고등어(조림용)','(신)제육고기 3kg','고추장 불고기 양념장(5kg)','척롤(5kg)','(통통이) 함박스테이크'], source: 'logistics' },
+        { name: '포장재', items: ['포장용기 대 블랙','종이포장용기','초밥용 비닐(소)'], source: 'special' },
+        { name: '소모품', items: ['통합 포장지(수저집)','무청시래기','밀떡볶이','야채피클','두부드림(팩)','도토리묵(판)','당면','찌개용된장(양지뜰)','누룽지','연근채'], source: 'special' },
+        { name: '양념장', items: ['겉절이용 양념장','두부조림용 양념장','새모양 맛간장소스(말통)','국물떡볶이소스','연근드레싱'], source: 'special' },
+        { name: '비례 발주', items: ['냉동냉이'], source: 'special' }
+    ];
+
+    function getItemBaseUnit(item) {
+        if (item.includes('홍시')) return '개';
+        if (item.includes('새우')) return '마리';
+        if (item.includes('제육') || item.includes('척롤')) return '인분';
+        if (item.includes('양념장') && !specialItemsData[item]) return '인분';
+        if (item.includes('함박스테이크')) return '개';
+        return '미';
+    }
+
+    function renderAllItemsSettings() {
+        var html = '';
+        itemCategories.forEach(function(cat) {
+            html += `<div class="category-section"><h4 class="category-title">${cat.name}</h4>`;
+            cat.items.forEach(function(item) {
+                if (cat.source === 'logistics') html += renderLogisticsRow(item);
+                else html += renderSpecialRow(item);
+            });
+            html += '</div>';
+        });
+        document.getElementById('all-items-settings-container').innerHTML = html;
+    }
+
+    function renderLogisticsRow(item) {
+        if (logisticsData[item] === undefined) return '';
+        var baseUnit = getItemBaseUnit(item);
+        var boxUnit = logisticsBoxUnit[item] || 'Box';
+        return `<div class="special-item-row">
+            <div class="si-header">
+                <span class="si-name">${item}</span>
+                <span class="si-type-badge">식재료</span>
+            </div>
+            <div class="si-controls">
+                <div class="si-control-group"><label>1단위당</label>
+                    <input type="number" step="0.1" value="${logisticsData[item]}"
+                        oninput="logisticsData['${item}']=parseFloat(this.value)||0; autoSaveSettings(); calculate();">
+                    <small>${baseUnit}</small>
+                </div>
+                <div class="si-control-group"><label>발주 단위</label>
+                    <input type="text" value="${boxUnit}" style="width:60px;"
+                        oninput="logisticsBoxUnit['${item}']=this.value||'Box'; autoSaveSettings(); calculate();">
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function renderSpecialRow(item) {
+        var s = specialItemsData[item];
+        if (!s) return '';
+        var typeLabels = {
+            'direct_menu': '포장건수기반', 'sum_menus': '합산기반',
+            'per_serving': '인분기반', 'per_revenue': '매출기반',
+            'proportional': '비례산출', 'proportional_order': '발주비례'
+        };
+        var typeLabel = typeLabels[s.type] || '';
+        var html = `<div class="special-item-row">
+            <div class="si-header">
+                <span class="si-name">${item}</span>
+                <span class="si-type-badge">${typeLabel}</span>
+                ${s.toggleable ? `<button class="si-toggle-btn ${s.enabled ? 'on' : 'off'}"
+                    onclick="toggleSpecialItem(this, '${item}')">${s.enabled ? '사용중' : '미사용'}</button>` : ''}
+            </div>
+            <div class="si-controls">`;
+        if (s.type === 'per_revenue') {
+            html += `<div class="si-control-group"><label>100만원당</label>
+                <input type="number" step="0.1" value="${s.per1000000||0}"
+                    oninput="specialItemsData['${item}'].per1000000=parseFloat(this.value)||0; autoSaveSettings(); calculate();">
+                <small>${s.unit}</small></div>`;
+        } else if (s.type === 'per_serving') {
+            html += `<div class="si-control-group"><label>인분당</label>
+                <input type="number" step="0.1" value="${s.perServing||1}"
+                    oninput="specialItemsData['${item}'].perServing=parseFloat(this.value)||1; autoSaveSettings(); calculate();">
+                <small>${s.unit}</small></div>`;
+        } else if (s.type === 'proportional') {
+            html += `<div class="si-control-group"><label>${s.refItem} ×</label>
+                <input type="number" step="0.01" value="${s.ratio||1}"
+                    oninput="specialItemsData['${item}'].ratio=parseFloat(this.value)||0; autoSaveSettings(); calculate();"></div>`;
+        } else if (s.type === 'proportional_order') {
+            html += `<div class="si-control-group"><label>${s.refItem} 1박스당</label>
+                <input type="number" step="0.01" value="${s.ratio||0}"
+                    oninput="specialItemsData['${item}'].ratio=parseFloat(this.value)||0; autoSaveSettings(); calculate();">
+                <small>${s.unit}</small></div>`;
+        } else if (s.type === 'direct_menu') {
+            html += `<div class="si-control-group"><label style="color:var(--text-sub)">${s.sourceMenu} 판매건수 = 발주량</label></div>`;
+        } else if (s.type === 'sum_menus') {
+            html += `<div class="si-control-group"><label style="color:var(--text-sub)">${s.sourceMenus.join(' + ')} 합산</label></div>`;
+        }
+        var spBoxUnit = s.boxUnit || '박스';
+        html += `<div class="si-control-group"><label>1단위당</label>
+            <input type="number" step="1" value="${s.logisticsUnit||1}"
+                oninput="specialItemsData['${item}'].logisticsUnit=parseFloat(this.value)||1; autoSaveSettings(); calculate();">
+            <small>${s.unit}</small></div>
+        <div class="si-control-group"><label>발주 단위</label>
+            <input type="text" value="${spBoxUnit}" style="width:60px;"
+                oninput="specialItemsData['${item}'].boxUnit=this.value||'박스'; autoSaveSettings(); calculate();">
+        </div>
+        </div></div>`;
+        return html;
+    }
+
+    function renderRecipeEditor() {
+        var html = '';
+        for (var menu in recipeData) {
+            html += `<div class="recipe-card">
+                <h4 class="rc-title">${menu}</h4>
+                <div class="rc-ingredients">`;
+            var used = [];
+            for (var item in logisticsData) {
+                if ((recipeData[menu][item] || 0) > 0) used.push(item);
+            }
+            if (used.length === 0) {
+                html += `<div class="rc-empty">등록된 재료 없음</div>`;
+            } else {
+                used.forEach(function(item) {
+                    var val = recipeData[menu][item];
+                    html += `<div class="rc-ing">
+                        <span class="rc-ing-name">${item}</span>
+                        <input type="number" step="0.1" min="0" value="${val}" inputmode="decimal"
+                            oninput="recipeData['${menu}']['${item}']=parseFloat(this.value)||0; autoSaveSettings(); calculate();">
+                        <button class="rc-remove" onclick="removeIngredient('${menu}','${item}')" title="재료 삭제">×</button>
+                    </div>`;
+                });
+            }
+            var unused = [];
+            for (var item2 in logisticsData) {
+                if (!(recipeData[menu][item2] > 0)) unused.push(item2);
+            }
+            if (unused.length > 0) {
+                html += `<select class="rc-add" onchange="addIngredient('${menu}', this.value); this.value='';">
+                    <option value="">+ 재료 추가</option>`;
+                unused.forEach(function(item3) { html += `<option value="${item3}">${item3}</option>`; });
+                html += `</select>`;
+            }
+            html += `</div></div>`;
+        }
+        document.getElementById('recipe-settings-container').innerHTML = html;
+    }
+
+    function addIngredient(menu, item) {
+        if (!item) return;
+        recipeData[menu][item] = 1;
+        autoSaveSettings();
+        renderRecipeEditor();
+        calculate();
+    }
+    function removeIngredient(menu, item) {
+        if (!confirm(`'${menu}'에서 '${item}' 재료를 삭제하시겠습니까?`)) return;
+        delete recipeData[menu][item];
+        autoSaveSettings();
+        renderRecipeEditor();
+        calculate();
+    }
+
+    function renderSalesInputs() {
+        var html = '';
+        for (var menu in recipeData) {
+            var sv = salesData[menu] || '';
+            html += `<div class="input-group"><label>${menu}</label><input type="number" inputmode="numeric" pattern="[0-9]*" data-menu="${menu}" placeholder="0" value="${sv}" oninput="salesData['${menu}']=parseFloat(this.value)||0; confirmedItems={}; autoSaveSettings(); calculate();"></div>`;
+        }
+        document.getElementById('sales-inputs-container').innerHTML = html;
+    }
+
+    // 안전재고 토글 함수
+    function toggleStockMode(btn) {
+        useStockMode = !useStockMode;
+        if (useStockMode) {
+            btn.classList.add('stock-mode-on');
+            btn.innerText = '[재고 입력 ON]';
+        } else {
+            btn.classList.remove('stock-mode-on');
+            btn.innerText = '[재고 입력 OFF]';
+        }
+        autoSaveSettings();
+        calculate();
+    }
+
+    function applyStockModeButtonState() {
+        var btn = document.getElementById('btn-stock-mode');
+        if (!btn) return;
+        if (useStockMode) {
+            btn.classList.add('stock-mode-on');
+            btn.innerText = '[재고 입력 ON]';
+        } else {
+            btn.classList.remove('stock-mode-on');
+            btn.innerText = '[재고 입력 OFF]';
+        }
+    }
+
+    function toggleSafetyStock(btn) {
+        isSafetyStockActive = !isSafetyStockActive;
+        if(isSafetyStockActive) {
+            btn.classList.add('active');
+            btn.innerText = '[안전재고 10% 적용됨]';
+        } else {
+            btn.classList.remove('active');
+            btn.innerText = '[안전재고 10% 추가]';
+        }
+        calculate();
+    }
+
+    // 화면 캡처 함수
+    function captureScreen() {
+        var target = document.getElementById('capture-area');
+        
+        // 모바일 해상도 고려하여 scale 옵션 적용
+        html2canvas(target, { scale: 2, backgroundColor: "#FDFBF7" }).then(function(canvas) {
+            var link = document.createElement('a');
+            link.download = `달빛고_발주내역_${new Date().toISOString().slice(0,10)}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }).catch(function(err) {
+            alert("캡처 중 오류가 발생했습니다: " + err);
+        });
+    }
+
+    function calculate() {
+        var totals = {};
+        for (var item in logisticsData) totals[item] = 0;
+
+        var totalServings = 0;
+        var autoRevenue = 0;
+        for (var menu in salesData) {
+            if (salesData[menu] > 0 && recipeData[menu]) {
+                for (var ing in recipeData[menu]) {
+                    totals[ing] = (totals[ing] || 0) + salesData[menu] * (recipeData[menu][ing] || 0);
+                }
+                totalServings += salesData[menu] * (menuServings[menu] !== undefined ? menuServings[menu] : 1);
+            }
+            if (salesData[menu] > 0) autoRevenue += salesData[menu] * (menuPrices[menu] || 0);
+        }
+
+        // 매출: 수동 오버라이드 없으면 자동 계산값 사용
+        var rIn = document.getElementById('revenue-input');
+        if (!revenueManualOverride) {
+            dailyRevenue = autoRevenue;
+            if (rIn && document.activeElement !== rIn) rIn.value = autoRevenue > 0 ? autoRevenue : '';
+        } else if (rIn && document.activeElement !== rIn && (!rIn.value || parseFloat(rIn.value) !== dailyRevenue)) {
+            // 수동 모드 복원: 저장된 dailyRevenue를 input에 반영
+            rIn.value = dailyRevenue > 0 ? dailyRevenue : '';
+        }
+        var rAuto = document.getElementById('revenue-auto-info');
+        if (rAuto) rAuto.textContent = `자동 계산값: ${autoRevenue.toLocaleString()}원${revenueManualOverride ? ' (수동 입력 중)' : ''}`;
+
+        // 백미새우 최종 박스 수 (proportional_order 계산용)
+        var baekmiTotal = (totals['백미새우'] || 0) * multiplier;
+        if (isSafetyStockActive) baekmiTotal *= 1.1;
+        var baekmiBoxes = logisticsData['백미새우'] > 0 ? baekmiTotal / logisticsData['백미새우'] : 0;
+        var stockOf = function(it) { return useStockMode ? (currentStock[it] || 0) : 0; };
+
+        // 특수 품목 계산
+        var specialResults = {};
+        var revPer1000000 = dailyRevenue / 1000000;
+
+        for (var sItem in specialItemsData) {
+            var s = specialItemsData[sItem];
+            if (s.toggleable && !s.enabled) { specialResults[sItem] = 0; continue; }
+
+            var qty = 0;
+            if (s.type === 'direct_menu') {
+                qty = (salesData[s.sourceMenu] || 0) * multiplier;
+            } else if (s.type === 'sum_menus') {
+                var sm = 0;
+                s.sourceMenus.forEach(function(m) { sm += salesData[m] || 0; });
+                qty = sm * multiplier;
+            } else if (s.type === 'per_serving') {
+                qty = totalServings * (s.perServing || 1) * multiplier;
+            } else if (s.type === 'per_revenue') {
+                qty = revPer1000000 * (s.per1000000 || 0) * multiplier;
+            } else if (s.type === 'proportional') {
+                // 참조 품목(무청시래기 등)에 이미 안전재고 포함 → 재적용 안 함
+                qty = (specialResults[s.refItem] || 0) * (s.ratio || 1);
+            } else if (s.type === 'proportional_order') {
+                // 백미새우 박스 수에 이미 안전재고 포함 → 재적용 안 함
+                qty = baekmiBoxes * (s.ratio || 0);
+            }
+
+            if (isSafetyStockActive && (s.type === 'direct_menu' || s.type === 'sum_menus' || s.type === 'per_serving' || s.type === 'per_revenue')) {
+                qty *= 1.1;
+            }
+            specialResults[sItem] = qty;
+        }
+
+        var container = document.getElementById('result-cards-container');
+        var emptyMsg = document.getElementById('result-empty-msg');
+        var html = '';
+        lastResults = {};
+
+        // 레시피 기반 품목
+        for (var rItem in totals) {
+            var dailyUsage = totals[rItem];
+            if (dailyUsage === 0) continue;
+
+            var orderTotal = dailyUsage * multiplier;
+            if (isSafetyStockActive) orderTotal *= 1.1;
+
+            var perUnit = logisticsData[rItem];
+            var rawBoxes = perUnit > 0 ? (orderTotal / perUnit) : 0;
+            var stockR = stockOf(rItem);
+            var adjusted = Math.max(0, rawBoxes - stockR);
+            var orderBoxes = Math.floor(adjusted);
+            lastResults[rItem] = { orderBoxes: orderBoxes, rawBoxes: rawBoxes };
+
+            var baseUnit = '미';
+            var finalUnit = logisticsBoxUnit[rItem] || 'Box';
+
+            if (rItem.includes('홍시')) baseUnit = '개';
+            else if (rItem.includes('새우')) baseUnit = '마리';
+            else if (rItem.includes('제육') || rItem.includes('척롤')) baseUnit = '인분';
+            else if (rItem.includes('양념장')) baseUnit = '인분';
+            else if (rItem === '(통통이) 함박스테이크') baseUnit = '개';
+
+            if (!confirmedItems[rItem]) {
+                html += buildOrderCard({
+                    name: rItem, category: getCategoryName(rItem) || '식재료',
+                    dailyText: `${dailyUsage.toLocaleString()} ${baseUnit}`,
+                    totalText: `${orderTotal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${baseUnit}`,
+                    rawBoxesText: `${rawBoxes.toFixed(2)} ${finalUnit}`,
+                    stock: stockR, unit: finalUnit, orderBoxes: orderBoxes, rawBoxes: rawBoxes
+                });
+            }
+        }
+
+        // 특수 품목
+        for (var spItem in specialResults) {
+            var spQty = specialResults[spItem];
+            if (!spQty || spQty <= 0) continue;
+
+            var sp = specialItemsData[spItem];
+            var lu = sp.logisticsUnit || 1;
+            var rawBoxesS = spQty / lu;
+            var stockS = stockOf(spItem);
+            var adjustedS = Math.max(0, rawBoxesS - stockS);
+            var orderBoxesS = Math.floor(adjustedS);
+            lastResults[spItem] = { orderBoxes: orderBoxesS, rawBoxes: rawBoxesS };
+
+            var basisText = '';
+            if (sp.type === 'direct_menu') basisText = `${(salesData[sp.sourceMenu]||0).toLocaleString()} 건/일`;
+            else if (sp.type === 'sum_menus') {
+                var sumPerDay = sp.sourceMenus.reduce(function(a, m) { return a + (salesData[m]||0); }, 0);
+                basisText = `합산 ${sumPerDay.toLocaleString()} 건/일`;
+            } else if (sp.type === 'per_serving') basisText = `${totalServings.toLocaleString()} 인분/일`;
+            else if (sp.type === 'per_revenue') basisText = `매출 ${(dailyRevenue/10000).toFixed(1)}만원`;
+            else if (sp.type === 'proportional') basisText = `${sp.refItem} ${(specialResults[sp.refItem]||0).toFixed(1)}개 × ${sp.ratio}`;
+            else if (sp.type === 'proportional_order') basisText = `백미새우 ${baekmiBoxes.toFixed(2)}박스 × ${sp.ratio}`;
+
+            var spBoxUnit = sp.boxUnit || '박스';
+            if (!confirmedItems[spItem]) {
+                html += buildOrderCard({
+                    name: spItem, category: getCategoryName(spItem) || '소모품',
+                    dailyText: basisText,
+                    totalText: `${spQty.toLocaleString(undefined, {maximumFractionDigits: 1})} ${sp.unit}`,
+                    rawBoxesText: `${rawBoxesS.toFixed(2)} ${spBoxUnit}`,
+                    stock: stockS, unit: spBoxUnit, orderBoxes: orderBoxesS, rawBoxes: rawBoxesS,
+                    dailyLabel: '산출기준'
+                });
+            }
+        }
+
+        container.innerHTML = html;
+        if (emptyMsg) emptyMsg.style.display = html ? 'none' : 'block';
+    }
+
+    function buildOrderCard(d) {
+        // rawBoxes 기준으로 발주 필요 여부 판단 (총 필요량 >= 1박스이면 발주, 미만이면 재고확인)
+        var needsOrder = d.rawBoxes >= 1 && d.orderBoxes >= 1;
+        var cardCls, btnCls, btnText, recCls;
+        if (needsOrder) {
+            cardCls = 'order-card urgent';
+            btnCls = 'oc-confirm confirm-order';
+            btnText = `✓ ${d.orderBoxes}${d.unit} 발주 완료`;
+            recCls = 'oc-rec-value highlight';
+        } else {
+            cardCls = 'order-card check-needed';
+            btnCls = 'oc-confirm confirm-check';
+            btnText = '재고 확인 필요';
+            recCls = 'oc-rec-value';
+        }
+        var dailyLabel = d.dailyLabel || '1일 소요';
+        var nameEsc = d.name.replace(/'/g, "\\'");
+        var stockRow = useStockMode ? `<div class="oc-stock-row">
+                    <label>현재 재고</label>
+                    <input type="number" step="0.1" min="0" value="${d.stock}" inputmode="decimal"
+                        oninput="currentStock['${nameEsc}']=parseFloat(this.value)||0; autoSaveSettings(); calculate();">
+                    <span class="unit-tag">${d.unit}</span>
+                </div>` : '';
+        return `<div class="${cardCls}">
+            <div class="oc-header">
+                <span class="oc-name">${d.name}</span>
+                <span class="oc-category">${d.category}</span>
+            </div>
+            <div class="oc-body">
+                <div class="oc-row"><span>${dailyLabel}</span><span class="oc-value">${d.dailyText}</span></div>
+                <div class="oc-row"><span>총 필요</span><span class="oc-value">${d.totalText} <small style="color:var(--text-sub); font-weight:400;">(${d.rawBoxesText})</small></span></div>
+                ${stockRow}
+            </div>
+            <div class="oc-footer">
+                <div class="oc-recommend">
+                    <span class="oc-rec-label">권장 발주</span>
+                    <span class="${recCls}">${d.orderBoxes} ${d.unit}</span>
+                </div>
+                <button class="${btnCls}" onclick="confirmItem(this, '${nameEsc}')">${btnText}</button>
+            </div>
+        </div>`;
+    }
+
+    function confirmItem(btn, item) {
+        var r = lastResults[item];
+        if (!r) return;
+        var card = btn.closest('.order-card');
+        var apply = function() {
+            // 발주 완료: 재고에 발주분 추가 (재고 모드일 때만)
+            if (useStockMode && r.orderBoxes > 0) {
+                currentStock[item] = (currentStock[item] || 0) + r.orderBoxes;
+            }
+            confirmedItems[item] = true;
+            autoSaveSettings();
+            calculate();
+        };
+        if (card) {
+            card.classList.add('fly-out');
+            setTimeout(apply, 420);
+        } else {
+            apply();
+        }
+    }
+
+    function resetAll() {
+        if (!confirm('판매량·매출 입력값을 전체 초기화하시겠습니까?\n\n(재고·기준설정은 유지됩니다)')) return;
+        salesData = {};
+        dailyRevenue = 0;
+        revenueManualOverride = false;
+        confirmedItems = {};
+        document.querySelectorAll('#sales-inputs-container input').forEach(function(inp) { inp.value = ''; });
+        var rIn = document.getElementById('revenue-input');
+        if (rIn) rIn.value = '';
+        autoSaveSettings();
+        calculate();
+    }
+
+    function getCategoryName(item) {
+        for (var i = 0; i < itemCategories.length; i++) {
+            if (itemCategories[i].items.indexOf(item) >= 0) return itemCategories[i].name;
+        }
+        return '';
+    }
+
+    function resetRevenueOverride() {
+        revenueManualOverride = false;
+        var rIn = document.getElementById('revenue-input');
+        if (rIn) rIn.value = '';
+        calculate();
+    }
+
+    function renderMenuPrices() {
+        var html = '';
+        for (var menu in menuPrices) {
+            html += `<div class="special-item-row">
+                <div class="si-header"><span class="si-name">${menu}</span></div>
+                <div class="si-controls">
+                    <div class="si-control-group"><label>단가</label>
+                        <input type="number" step="100" value="${menuPrices[menu]||0}"
+                            oninput="menuPrices['${menu}']=parseFloat(this.value)||0; autoSaveSettings(); calculate();">
+                        <small>원</small>
+                    </div>
+                </div>
+            </div>`;
+        }
+        document.getElementById('menu-prices-container').innerHTML = html;
+    }
+
+    function toggleSpecialItem(btn, item) {
+        specialItemsData[item].enabled = !specialItemsData[item].enabled;
+        btn.textContent = specialItemsData[item].enabled ? '사용중' : '미사용';
+        btn.className = 'si-toggle-btn ' + (specialItemsData[item].enabled ? 'on' : 'off');
+        autoSaveSettings();
+        calculate();
+    }
+
+    /* 튜토리얼 로직 - 신규 기능 설명 추가 */
+    var currentStep = 0;
+    var steps = [
+        { target: 'step-delivery', text: '매장의 배송 요일을 선택하십시오. 요일 설정은 기기에 자동 저장됩니다.' },
+        { target: 'step-sales', text: '예상 판매량을 기재하십시오. 입력값은 자동 저장되며, 다음 사이클 시작 시 결과 영역 하단의 [전체 초기화] 버튼으로 리셋하십시오.' },
+        { target: 'step-result', text: '산출된 발주량입니다. 여유분이 필요하면 [안전재고 10% 추가]를, 카카오톡 보고가 필요하면 [화면캡쳐]를 누르십시오.' },
+        { target: 'top-header', text: '주의: 카카오톡 브라우저에서 캐시 데이터를 지울 경우 자동 저장된 설정이 초기화될 수 있습니다.', btn: '가이드 종료' }
+    ];
+
+    function startTutorial() {
+        currentStep = 0;
+        document.getElementById('tutorial-overlay').style.display = 'block';
+        document.getElementById('tutorial-tooltip').style.display = 'block';
+        showStep();
+    }
+
+    function showStep() {
+        document.querySelectorAll('.tutorial-focus').forEach(el => el.classList.remove('tutorial-focus'));
+        
+        var step = steps[currentStep];
+        var targetEl = document.getElementById(step.target);
+        
+        targetEl.classList.add('tutorial-focus');
+        
+        var rect = targetEl.getBoundingClientRect();
+        var tooltip = document.getElementById('tutorial-tooltip');
+        var arrow = document.getElementById('tooltip-arrow');
+
+        document.getElementById('tutorial-text').innerText = step.text;
+        document.getElementById('tutorial-next-btn').innerText = step.btn || '다음 단계';
+        
+        var tooltipTop = rect.bottom + window.scrollY + 20;
+        var tooltipLeft = rect.left + window.scrollX + (rect.width/2) - 140; 
+        
+        // 툴팁 위치 보정 (상단 헤더 지정 시 화살표 방향 변경)
+        arrow.className = 'tooltip-arrow';
+        if(step.target === 'top-header') {
+            tooltipTop = rect.bottom + window.scrollY + 15;
+        }
+
+        if (tooltipLeft < 10) tooltipLeft = 10;
+        if (tooltipLeft + 280 > window.innerWidth) tooltipLeft = window.innerWidth - 290;
+        
+        tooltip.style.top = tooltipTop + 'px';
+        tooltip.style.left = tooltipLeft + 'px';
+        
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function nextTutorialStep() {
+        currentStep++;
+        if (currentStep >= steps.length) {
+            document.querySelectorAll('.tutorial-focus').forEach(el => el.classList.remove('tutorial-focus'));
+            document.getElementById('tutorial-overlay').style.display = 'none';
+            document.getElementById('tutorial-tooltip').style.display = 'none';
+        } else {
+            showStep();
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+</script>
+
+</body>
+</html>

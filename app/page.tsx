@@ -1,34 +1,55 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useSession } from "next-auth/react"
 import { v4 as uuidv4 } from "uuid"
 import Header from "@/components/Header"
+import LoginScreen from "@/components/LoginScreen"
 import ReceiptUploader from "@/components/ReceiptUploader"
 import ReceiptCard from "@/components/ReceiptCard"
 import SummaryTable from "@/components/SummaryTable"
+import SettingsModal, { getReceiverEmail } from "@/components/SettingsModal"
 import { ReceiptItem, SavedRecord } from "@/lib/types"
 import { STAFF_LIST } from "@/lib/constants"
 import { loadRecords, saveRecords, clearRecords } from "@/lib/storage"
 import { downloadExcel } from "@/lib/excel"
 
 export default function Home() {
+  const { data: session, status } = useSession()
   const [receipts, setReceipts] = useState<ReceiptItem[]>([])
   const [savedRecords, setSavedRecords] = useState<SavedRecord[]>([])
-  const [isSaving, setIsSaving] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null)
+  const [fontSize, setFontSize] = useState(18)
+  const fontSizeRef = useRef(18)
 
-  // localStorage에서 저장 내역 로드
+  // localStorage 로드
   useEffect(() => {
     setSavedRecords(loadRecords())
+    const saved = parseInt(localStorage.getItem("app_font_size") ?? "18", 10)
+    if (saved >= 14 && saved <= 30) {
+      setFontSize(saved)
+      fontSizeRef.current = saved
+      document.body.style.fontSize = saved + "px"
+    }
   }, [])
+
+  const handleFontSize = (delta: number) => {
+    const base = delta === 0 ? 18 : fontSizeRef.current + delta
+    const next = Math.min(30, Math.max(14, base))
+    fontSizeRef.current = next
+    setFontSize(next)
+    document.body.style.fontSize = next + "px"
+    localStorage.setItem("app_font_size", String(next))
+  }
 
   const showToast = (msg: string, type: "ok" | "err") => {
     setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
+    setTimeout(() => setToast(null), 3200)
   }
 
-  // ----------- OCR 호출 -----------
+  // ── OCR 호출 ──
   const performOCR = useCallback(async (id: string, file: File) => {
     setReceipts((prev) =>
       prev.map((r) => (r.id === id ? { ...r, isOcrLoading: true } : r))
@@ -45,7 +66,7 @@ export default function Home() {
                 ...r,
                 isOcrLoading: false,
                 ocrText: data.text,
-                amount: data.detectedAmount || r.amount,
+                amount: data.detectedAmount > 0 ? data.detectedAmount : r.amount,
               }
             : r
         )
@@ -57,7 +78,7 @@ export default function Home() {
     }
   }, [])
 
-  // ----------- 파일 선택 -----------
+  // ── 파일 선택 ──
   const handleFilesSelected = useCallback(
     (files: FileList) => {
       const today = new Date().toISOString().slice(0, 10)
@@ -77,81 +98,86 @@ export default function Home() {
           note: "",
         }
       })
-
       setReceipts((prev) => [...prev, ...newReceipts])
-
-      // 각 영수증에 OCR 적용
-      newReceipts.forEach((r) => {
-        if (r.file) performOCR(r.id, r.file)
-      })
+      newReceipts.forEach((r) => r.file && performOCR(r.id, r.file))
     },
     [performOCR]
   )
 
-  // ----------- 영수증 폼 업데이트 -----------
-  const updateReceipt = (id: string, updates: Partial<ReceiptItem>) => {
-    setReceipts((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
-    )
-  }
+  const updateReceipt = (id: string, updates: Partial<ReceiptItem>) =>
+    setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)))
 
   const removeReceipt = (id: string) => {
     setReceipts((prev) => {
-      const target = prev.find((r) => r.id === id)
-      if (target?.imageUrl) URL.revokeObjectURL(target.imageUrl)
+      const t = prev.find((r) => r.id === id)
+      if (t?.imageUrl) URL.revokeObjectURL(t.imageUrl)
       return prev.filter((r) => r.id !== id)
     })
   }
 
-  // ----------- 테이블에 저장 -----------
+  // ── 테이블에 저장 ──
   const handleSaveToTable = () => {
     if (receipts.length === 0) return
-    setIsSaving(true)
-
     const newRecords: SavedRecord[] = receipts.map((r) => ({
       id: r.id,
       date: r.date,
       amount: r.amount,
       user: r.user,
-      category: r.category === "직접입력" ? (r.customCategory || "기타") : r.category,
+      category:
+        r.category === "직접입력" ? r.customCategory || "기타" : r.category,
       companions: r.companions,
       note: r.note || "영수증 처리",
       savedAt: new Date().toISOString(),
     }))
-
     const updated = [...savedRecords, ...newRecords]
     setSavedRecords(updated)
     saveRecords(updated)
-
-    // 처리한 영수증 URL 해제
-    receipts.forEach((r) => { if (r.imageUrl) URL.revokeObjectURL(r.imageUrl) })
+    receipts.forEach((r) => r.imageUrl && URL.revokeObjectURL(r.imageUrl))
     setReceipts([])
-    setIsSaving(false)
     showToast(`✅ ${newRecords.length}건이 테이블에 저장되었습니다.`, "ok")
   }
 
-  // ----------- 엑셀 다운로드 -----------
+  // ── 엑셀 다운로드 ──
   const handleDownload = () => {
-    if (savedRecords.length === 0) {
-      showToast("저장된 내역이 없습니다.", "err")
-      return
-    }
+    if (savedRecords.length === 0) { showToast("저장된 내역이 없습니다.", "err"); return }
     downloadExcel(savedRecords)
-    showToast("📥 엑셀 파일 다운로드 시작!", "ok")
+    showToast("📥 엑셀 파일 다운로드 중!", "ok")
   }
 
-  // ----------- 이메일 발송 -----------
+  // ── 이메일 발송 ──
   const handleSendEmail = async () => {
-    if (savedRecords.length === 0) {
-      showToast("전송할 내역이 없습니다.", "err")
+    if (savedRecords.length === 0) { showToast("전송할 내역이 없습니다.", "err"); return }
+
+    // 카카오 로그인은 Gmail 발송 불가
+    if (session?.provider === "kakao") {
+      showToast("이메일 발송은 Google 계정 로그인이 필요합니다.", "err")
       return
     }
+
+    const receiverEmail = getReceiverEmail()
+    if (!receiverEmail) {
+      setShowSettings(true)
+      showToast("먼저 수신자 이메일을 설정해주세요.", "err")
+      return
+    }
+
+    if (session?.error === "RefreshAccessTokenError") {
+      showToast("세션이 만료되었습니다. 다시 로그인해주세요.", "err")
+      return
+    }
+
     setIsSending(true)
     try {
       const res = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ records: savedRecords }),
+        body: JSON.stringify({
+          records: savedRecords,
+          receiverEmail,
+          senderName: session?.user?.name ?? "경비관리 시스템",
+          senderEmail: session?.user?.email ?? "",
+          accessToken: session?.accessToken,
+        }),
       })
       const data = (await res.json()) as { success?: boolean; error?: string }
       if (res.ok && data.success) {
@@ -165,54 +191,86 @@ export default function Home() {
     setIsSending(false)
   }
 
-  // ----------- 내역 삭제 -----------
+  // ── 내역 삭제 ──
   const handleDeleteRecord = (id: string) => {
     const updated = savedRecords.filter((r) => r.id !== id)
     setSavedRecords(updated)
     saveRecords(updated)
   }
-
   const handleClearAll = () => {
     setSavedRecords([])
     clearRecords()
     showToast("모든 내역이 삭제되었습니다.", "ok")
   }
 
+  // ── 로딩 / 로그인 화면 ──
+  if (status === "loading") {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg-page)",
+          fontFamily: "Chosunilbo_myungjo, serif",
+          fontSize: "1.1em",
+          color: "var(--text-sub)",
+        }}
+      >
+        로딩 중…
+      </div>
+    )
+  }
+
+  if (!session) return <LoginScreen />
+
+  // ── 메인 앱 ──
   return (
-    <div className="min-h-screen bg-[#f0ede8]">
-      <Header />
+    <div style={{ minHeight: "100vh", background: "var(--bg-page)" }}>
+      <Header
+        onSettings={() => setShowSettings(true)}
+        fontSize={fontSize}
+        onFontSize={handleFontSize}
+      />
 
-      <main className="max-w-2xl mx-auto pb-40">
-        {/* ─── 업로드 영역 ─── */}
-        <ReceiptUploader
-          onFilesSelected={handleFilesSelected}
-          disabled={isSaving}
-        />
+      <main
+        style={{ maxWidth: "680px", margin: "0 auto", padding: "16px 12px 160px" }}
+      >
+        {/* 업로드 */}
+        <ReceiptUploader onFilesSelected={handleFilesSelected} />
 
-        {/* ─── 영수증 카드 목록 ─── */}
+        {/* 영수증 카드 */}
         {receipts.length > 0 && (
-          <section>
-            <div className="px-4 mb-2">
-              <h2 className="font-bold text-gray-700 text-base">
-                ▶ 영수증 정보 확인 및 수정 ({receipts.length}장)
-              </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                OCR로 금액을 자동 인식합니다. 내용을 확인 후 하단 버튼으로 저장하세요.
-              </p>
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "8px",
+                marginBottom: "12px",
+              }}
+            >
+              <span style={{ fontWeight: 900, fontSize: "1em" }}>
+                ▶ 영수증 정보 확인 ({receipts.length}장)
+              </span>
+              <span style={{ fontSize: "0.78em", color: "var(--text-sub)" }}>
+                OCR로 금액 자동 인식 · 필요 시 수정 후 저장
+              </span>
             </div>
-            {receipts.map((receipt, idx) => (
+            {receipts.map((r, i) => (
               <ReceiptCard
-                key={receipt.id}
-                receipt={receipt}
-                index={idx}
-                onUpdate={(updates) => updateReceipt(receipt.id, updates)}
-                onRemove={() => removeReceipt(receipt.id)}
+                key={r.id}
+                receipt={r}
+                index={i}
+                onUpdate={(u) => updateReceipt(r.id, u)}
+                onRemove={() => removeReceipt(r.id)}
               />
             ))}
-          </section>
+          </div>
         )}
 
-        {/* ─── 누적 내역 테이블 ─── */}
+        {/* 누적 내역 */}
         <SummaryTable
           records={savedRecords}
           onDeleteRecord={handleDeleteRecord}
@@ -220,60 +278,68 @@ export default function Home() {
         />
       </main>
 
-      {/* ─── 하단 고정 액션 바 ─── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
-          {/* 영수증이 있을 때: 테이블에 저장 버튼 */}
+      {/* ── 하단 고정 액션 바 ── */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 40,
+          background: "var(--bg-card)",
+          borderTop: "2px solid var(--border-thin)",
+          padding: "10px 12px",
+          boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
+        }}
+      >
+        <div style={{ maxWidth: "680px", margin: "0 auto" }}>
           {receipts.length > 0 && (
             <button
+              className="action-btn primary"
+              style={{ width: "100%", marginBottom: "8px", padding: "14px" }}
               onClick={handleSaveToTable}
-              disabled={isSaving}
-              className="w-full py-3 bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:bg-brand-800 disabled:opacity-60 transition-colors"
-              style={{ fontSize: "1em" }}
             >
-              🔥 {receipts.length}장 영수증 테이블에 저장
+              🔥 {receipts.length}장 영수증 — 테이블에 저장
             </button>
           )}
 
-          {/* 내역이 있을 때: 다운로드 + 이메일 */}
           {savedRecords.length > 0 && (
-            <div className="flex gap-2">
-              <button
-                onClick={handleDownload}
-                className="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl flex items-center justify-center gap-1 active:bg-green-700 transition-colors"
-                style={{ fontSize: "0.9em" }}
-              >
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button className="action-btn safe" onClick={handleDownload}>
                 📥 엑셀 저장
               </button>
               <button
+                className="action-btn primary"
                 onClick={handleSendEmail}
                 disabled={isSending}
-                className="flex-1 py-3 bg-amber-600 text-white font-bold rounded-xl flex items-center justify-center gap-1 active:bg-amber-700 disabled:opacity-60 transition-colors"
-                style={{ fontSize: "0.9em" }}
+                style={{ opacity: isSending ? 0.6 : 1 }}
               >
                 {isSending ? "⏳ 발송 중…" : "📧 메일 전송"}
               </button>
             </div>
           )}
 
-          {/* 아무것도 없을 때 */}
           {receipts.length === 0 && savedRecords.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-1">
+            <p
+              style={{
+                textAlign: "center",
+                color: "var(--text-sub)",
+                fontSize: "0.82em",
+                margin: "4px 0",
+              }}
+            >
               위에서 영수증을 업로드하면 버튼이 활성화됩니다.
             </p>
           )}
         </div>
       </div>
 
-      {/* ─── 토스트 알림 ─── */}
+      {/* 설정 모달 */}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
+      {/* 토스트 */}
       {toast && (
-        <div
-          className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-lg text-white text-sm font-medium transition-all ${
-            toast.type === "ok" ? "bg-green-600" : "bg-red-500"
-          }`}
-        >
-          {toast.msg}
-        </div>
+        <div className={`toast ${toast.type}`}>{toast.msg}</div>
       )}
     </div>
   )

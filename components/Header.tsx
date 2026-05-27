@@ -1,54 +1,67 @@
 "use client"
 
-import { useFontSize } from "@/contexts/FontSizeContext"
-import { FontSizeKey } from "@/lib/types"
+import { useSession, signOut } from "next-auth/react"
+import Image from "next/image"
 
-export default function Header() {
-  const { fontSize, setFontSize } = useFontSize()
+interface Props {
+  onSettings: () => void
+  fontSize: number
+  onFontSize: (n: number) => void
+}
 
-  const sizes: { key: FontSizeKey; label: string }[] = [
-    { key: "sm", label: "小" },
-    { key: "md", label: "中" },
-    { key: "lg", label: "大" },
-  ]
+export default function Header({ onSettings, fontSize, onFontSize }: Props) {
+  const { data: session } = useSession()
+
+  const changeFont = (delta: number) => {
+    const next = Math.min(30, Math.max(14, fontSize + delta))
+    onFontSize(next)
+  }
 
   return (
-    <header className="sticky top-0 z-50 bg-brand-800 text-white shadow-md">
-      <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* 좌측: 타이틀 */}
-        <div className="flex items-center gap-2">
-          <span className="text-xl">📑</span>
-          <div>
-            <div className="font-bold leading-tight" style={{ fontSize: "1.05em" }}>
-              새모양 F&amp;B
-            </div>
-            <div className="text-brand-200 leading-tight" style={{ fontSize: "0.78em" }}>
-              경비관리 시스템
-            </div>
-          </div>
-        </div>
+    <header className="app-header">
+      {/* 좌측: 타이틀 */}
+      <div>
+        <h1>📑 새모양 F&amp;B</h1>
+        <div className="app-header-sub">법인카드 경비관리 시스템</div>
+      </div>
 
-        {/* 우측: 폰트 크기 조절 */}
-        <div className="flex items-center gap-1">
-          <span className="text-brand-300 mr-1" style={{ fontSize: "0.75em" }}>
-            글씨
-          </span>
-          {sizes.map(({ key, label }) => (
+      {/* 우측: 컨트롤 */}
+      <div className="header-controls">
+        {/* 폰트 크기 */}
+        <button className="ctrl-btn" onClick={() => changeFont(-2)}>가-</button>
+        <button className="ctrl-btn" onClick={() => changeFont(0)}>기본</button>
+        <button className="ctrl-btn" onClick={() => changeFont(2)}>가+</button>
+
+        {/* 설정 */}
+        <button className="ctrl-btn" onClick={onSettings} title="이메일 발송 설정">
+          ⚙️
+        </button>
+
+        {/* 사용자 프로필 */}
+        {session?.user && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {session.user.image ? (
+              <Image
+                src={session.user.image}
+                alt={session.user.name ?? ""}
+                width={28}
+                height={28}
+                className="rounded-full"
+                style={{ borderRadius: "50%", border: "1px solid var(--border-thin)" }}
+                unoptimized
+              />
+            ) : (
+              <span style={{ fontSize: "1.3em" }}>👤</span>
+            )}
             <button
-              key={key}
-              onClick={() => setFontSize(key)}
-              className={`w-8 h-8 rounded font-bold transition-all ${
-                fontSize === key
-                  ? "bg-white text-brand-800"
-                  : "bg-brand-700 text-brand-200 hover:bg-brand-600"
-              }`}
-              style={{ fontSize: key === "sm" ? "12px" : key === "md" ? "14px" : "16px" }}
-              aria-label={`글씨 크기 ${label}`}
+              className="ctrl-btn danger"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              title={`${session.user.name ?? ""} — 로그아웃`}
             >
-              {label}
+              로그아웃
             </button>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </header>
   )

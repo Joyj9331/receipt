@@ -9,117 +9,145 @@ interface Props {
 }
 
 export default function SummaryTable({ records, onDeleteRecord, onClearAll }: Props) {
-  const totalAmount = records.reduce((sum, r) => sum + r.amount, 0)
+  const total = records.reduce((s, r) => s + r.amount, 0)
 
   return (
-    <div className="mx-4 mb-4">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* 섹션 헤더 */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-gray-800">📊 누적 지출 내역</span>
-            {records.length > 0 && (
-              <span className="bg-brand-700 text-white text-xs px-2 py-0.5 rounded-full">
-                {records.length}건
-              </span>
-            )}
-          </div>
+    <div className="card">
+      <h3 className="section-title">
+        <span>
+          📊 누적 지출 내역
           {records.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-brand-700">
-                합계 {totalAmount.toLocaleString("ko-KR")}원
-              </span>
-              <button
-                onClick={() => {
-                  if (window.confirm("모든 내역을 삭제하시겠습니까?")) {
-                    onClearAll()
-                  }
-                }}
-                className="text-xs text-red-400 hover:text-red-600 underline"
-              >
-                전체삭제
-              </button>
-            </div>
+            <span
+              style={{
+                marginLeft: "8px",
+                background: "var(--point-color)",
+                color: "#fff",
+                borderRadius: "12px",
+                padding: "1px 9px",
+                fontSize: "0.72em",
+                fontWeight: 700,
+              }}
+            >
+              {records.length}건
+            </span>
           )}
-        </div>
-
-        {/* 테이블 */}
-        {records.length === 0 ? (
-          <div className="py-12 text-center text-gray-400">
-            <div className="text-3xl mb-2">📭</div>
-            <p className="text-sm">아직 저장된 내역이 없습니다.</p>
-            <p className="text-xs mt-1">
-              영수증을 업로드하고 &quot;테이블에 저장&quot; 버튼을 눌러주세요.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-sm">
-              <thead>
-                <tr className="bg-brand-800 text-white">
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">날짜</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">사용자</th>
-                  <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">금액(원)</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">카테고리</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">동반직원</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">비고</th>
-                  <th className="px-3 py-2.5 text-center font-medium whitespace-nowrap">삭제</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((r, i) => (
-                  <tr
-                    key={r.id}
-                    className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-brand-50 transition-colors`}
-                  >
-                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">{r.date}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap font-medium text-gray-800">{r.user}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-brand-700 whitespace-nowrap">
-                      {r.amount.toLocaleString("ko-KR")}
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
-                        {r.category}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-gray-600 max-w-[120px] truncate">
-                      {r.companions.length > 0 ? r.companions.join(", ") : "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-gray-600 max-w-[140px] truncate">
-                      {r.note || "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-center">
-                      <button
-                        onClick={() => {
-                          if (window.confirm("이 항목을 삭제하시겠습니까?")) {
-                            onDeleteRecord(r.id)
-                          }
-                        }}
-                        className="text-red-400 hover:text-red-600 text-base"
-                        aria-label="삭제"
-                      >
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              {/* 합계 행 */}
-              <tfoot>
-                <tr className="bg-brand-50 border-t-2 border-brand-200">
-                  <td colSpan={2} className="px-3 py-2.5 font-bold text-gray-700">
-                    합계 ({records.length}건)
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-bold text-brand-700">
-                    {totalAmount.toLocaleString("ko-KR")}
-                  </td>
-                  <td colSpan={4} />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+        </span>
+        {records.length > 0 && (
+          <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span className="total-val">{total.toLocaleString("ko-KR")}원</span>
+            <button
+              className="ctrl-btn danger"
+              style={{ padding: "4px 10px", fontSize: "0.75em" }}
+              onClick={() => {
+                if (window.confirm("누적 내역을 전체 삭제하시겠습니까?")) onClearAll()
+              }}
+            >
+              전체삭제
+            </button>
+          </span>
         )}
-      </div>
+      </h3>
+
+      {records.length === 0 ? (
+        <div
+          style={{
+            padding: "40px 0",
+            textAlign: "center",
+            color: "var(--text-sub)",
+          }}
+        >
+          <div style={{ fontSize: "2em", marginBottom: "8px" }}>📭</div>
+          <p style={{ margin: 0, fontSize: "0.9em" }}>아직 저장된 내역이 없습니다.</p>
+          <p style={{ margin: "4px 0 0", fontSize: "0.78em" }}>
+            영수증을 업로드하고 아래 버튼으로 저장하세요.
+          </p>
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto", borderRadius: "6px", border: "1px solid var(--border-thin)" }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>사용자</th>
+                <th>금액(원)</th>
+                <th>카테고리</th>
+                <th>동반직원</th>
+                <th>비고</th>
+                <th>삭제</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((r, i) => (
+                <tr
+                  key={r.id}
+                  style={{ background: i % 2 === 1 ? "var(--bg-page)" : "#fff" }}
+                >
+                  <td style={{ whiteSpace: "nowrap" }}>{r.date}</td>
+                  <td style={{ fontWeight: 900 }}>{r.user}</td>
+                  <td style={{ textAlign: "right", fontWeight: 900, color: "var(--text-main)" }}>
+                    {r.amount.toLocaleString("ko-KR")}
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        background: "var(--bg-page)",
+                        borderRadius: "10px",
+                        padding: "2px 10px",
+                        fontSize: "0.82em",
+                      }}
+                    >
+                      {r.category}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      color: "var(--text-sub)",
+                      maxWidth: "120px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {r.companions.length > 0 ? r.companions.join(", ") : "—"}
+                  </td>
+                  <td
+                    style={{
+                      color: "var(--text-sub)",
+                      maxWidth: "140px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {r.note || "—"}
+                  </td>
+                  <td>
+                    <button
+                      className="ctrl-btn danger"
+                      style={{ padding: "3px 8px", fontSize: "0.75em" }}
+                      onClick={() => {
+                        if (window.confirm("이 항목을 삭제하시겠습니까?"))
+                          onDeleteRecord(r.id)
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2} style={{ textAlign: "left", paddingLeft: "10px" }}>
+                  합계 ({records.length}건)
+                </td>
+                <td style={{ textAlign: "right" }} className="total-val">
+                  {total.toLocaleString("ko-KR")}
+                </td>
+                <td colSpan={4} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

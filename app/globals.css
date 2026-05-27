@@ -1,28 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&display=swap');
+/* ============================================================
+   조선일보명조체 — 무료 CDN 로드
+   ============================================================ */
+@font-face {
+  font-family: 'Chosunilbo_myungjo';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/Chosunilbo_myungjo.woff')
+    format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================
-   조선일보명조체 자가 호스팅 방법:
-   1. 조선일보명조체 폰트 파일(.woff2)을 /public/fonts/ 에 추가
-   2. 아래 주석 해제 후 Noto Serif KR 보다 우선순위 높게 설정
-   @font-face {
-     font-family: '조선일보명조체';
-     src: url('/fonts/ChosunilboNM.woff2') format('woff2');
-     font-weight: normal;
-     font-style: normal;
-   }
-   ============================================ */
-
+/* ============================================================
+   디자인 토큰 (index.html 기준)
+   ============================================================ */
 :root {
-  --font-primary: 'Noto Serif KR', '조선일보명조체', 'Georgia', serif;
+  --bg-page:     #F5F4F1;
+  --bg-card:     #FDFBF7;
+  --text-main:   #1c1917;
+  --text-sub:    #57534e;
+  --border-thick:#292524;
+  --border-thin: #d6d3d1;
+  --point-color: #be123c;
+  --safe-color:  #047857;
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ============================================================
+   Base
+   ============================================================ */
+* { box-sizing: border-box; }
 
 html {
   -webkit-tap-highlight-color: transparent;
@@ -30,58 +39,372 @@ html {
 }
 
 body {
-  font-family: var(--font-primary);
-  background-color: #f0ede8;
-  color: #1a1a2e;
-  min-height: 100vh;
-  /* 모바일 스크롤 최적화 */
+  font-family: 'Chosunilbo_myungjo', 'Georgia', serif;
+  font-weight: 700;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1.6;
+  letter-spacing: -0.02em;
   -webkit-overflow-scrolling: touch;
 }
 
-/* 입력 폼 기본 스타일 통일 */
-input[type="date"],
-input[type="number"],
-input[type="text"],
-select,
-textarea {
-  font-family: var(--font-primary);
+/* ============================================================
+   폰트 크기 조절 (JavaScript로 body font-size 직접 제어)
+   ============================================================ */
+
+/* ============================================================
+   공통 컴포넌트 클래스
+   ============================================================ */
+
+/* 헤더 */
+.app-header {
+  background: var(--bg-card);
+  border-bottom: 4px double var(--border-thick);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.app-header h1 {
+  margin: 0;
+  font-size: 1.4em;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: var(--text-main);
+  word-break: keep-all;
+}
+.app-header-sub {
+  font-size: 0.72em;
+  color: var(--text-sub);
+  font-weight: 700;
+  margin-top: 1px;
 }
 
-/* 모바일 input zoom 방지 (iOS) */
+/* 헤더 버튼들 */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.ctrl-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border-thick);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.82em;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+.ctrl-btn:active { background: var(--border-thick); color: #fff; }
+.ctrl-btn.active { background: var(--text-main); color: #fff; }
+.ctrl-btn.danger { border-color: var(--point-color); color: var(--point-color); }
+.ctrl-btn.danger:active { background: var(--point-color); color: #fff; }
+
+/* 카드 */
+.card {
+  background: var(--bg-card);
+  padding: 20px;
+  border: 1px solid var(--border-thin);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+/* 섹션 타이틀 */
+.section-title {
+  font-size: 1em;
+  font-weight: 900;
+  color: var(--text-main);
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 3px double var(--border-thick);
+  letter-spacing: 0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.section-title span.sub {
+  font-size: 0.72em;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.section-title span.point {
+  font-size: 0.72em;
+  font-weight: 700;
+  color: var(--point-color);
+}
+
+/* 액션 버튼 (큰 버튼) */
+.action-btn {
+  flex: 1;
+  padding: 13px 10px;
+  border: 2px solid var(--text-main);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 0.95em;
+  border-radius: 6px;
+  text-align: center;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+  word-break: keep-all;
+}
+.action-btn:active,
+.action-btn.primary { background: var(--text-main); color: #fff; }
+.action-btn.safe { background: var(--safe-color); color: #fff; border-color: var(--safe-color); }
+.action-btn.danger { border-color: var(--point-color); color: var(--point-color); }
+.action-btn.danger:active { background: var(--point-color); color: #fff; }
+.action-btn:disabled { opacity: 0.5; cursor: default; pointer-events: none; }
+
+/* 입력 폼 */
+.form-label {
+  display: block;
+  font-size: 0.85em;
+  color: var(--text-sub);
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.form-input {
+  width: 100%;
+  padding: 11px 10px;
+  border: 1px solid var(--border-thin);
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 1em;
+  background: #fff;
+  color: var(--text-main);
+}
+.form-input:focus {
+  outline: 2px solid var(--border-thick);
+  border-color: transparent;
+}
+select.form-input {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* 토글 칩 버튼 */
+.chip {
+  padding: 7px 14px;
+  border: 1px solid var(--border-thin);
+  background: var(--bg-card);
+  border-radius: 20px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88em;
+  cursor: pointer;
+  color: var(--text-sub);
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.chip.active {
+  background: var(--text-main);
+  color: #fff;
+  border-color: var(--text-main);
+}
+.chip.green.active {
+  background: var(--safe-color);
+  border-color: var(--safe-color);
+  color: #fff;
+}
+
+/* 테이블 */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+.data-table th,
+.data-table td {
+  padding: 12px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-thin);
+}
+.data-table th {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border-bottom: 2px solid var(--text-main);
+  font-weight: 900;
+}
+.data-table tr:hover td { background: #faf9f7; }
+.data-table tfoot td {
+  font-weight: 900;
+  border-top: 2px solid var(--text-main);
+  background: var(--bg-page);
+}
+.total-val { color: var(--point-color); font-weight: 900; font-size: 1.1em; }
+
+/* 업로드 영역 */
+.upload-zone {
+  border: 2px dashed var(--border-thin);
+  border-radius: 8px;
+  padding: 32px 20px;
+  text-align: center;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--border-thick);
+  background: #f5f4f0;
+}
+.upload-zone p { margin: 6px 0; color: var(--text-sub); }
+
+/* 토스트 */
+.toast {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 12px 22px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  white-space: nowrap;
+  animation: toastIn 0.2s ease;
+}
+.toast.ok  { background: var(--safe-color); }
+.toast.err { background: var(--point-color); }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* 모달 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-box {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.modal-title {
+  font-size: 1.1em;
+  font-weight: 900;
+  margin: 0 0 18px 0;
+  padding-bottom: 10px;
+  border-bottom: 3px double var(--border-thick);
+}
+
+/* 로그인 화면 */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg-page);
+}
+.login-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-thin);
+  border-radius: 10px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+.login-title {
+  font-size: 1.5em;
+  font-weight: 900;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.04em;
+}
+.login-sub {
+  font-size: 0.85em;
+  color: var(--text-sub);
+  margin: 0 0 28px 0;
+}
+.login-divider {
+  border: none;
+  border-top: 3px double var(--border-thin);
+  margin: 20px 0;
+}
+.social-btn {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid var(--border-thick);
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  transition: all 0.12s;
+}
+.social-btn.google {
+  background: #fff;
+  color: var(--text-main);
+  border-color: var(--border-thick);
+}
+.social-btn.google:hover { background: var(--bg-page); }
+.social-btn.kakao {
+  background: #FEE500;
+  color: #3C1E1E;
+  border-color: #FEE500;
+}
+.social-btn.kakao:hover { background: #f5dc00; }
+.social-btn:active { transform: scale(0.98); }
+
+/* 모바일 */
+@media (max-width: 600px) {
+  body { font-size: 16px; padding: 0; }
+  .app-header h1 { font-size: 1.2em; }
+  .card { padding: 14px; }
+  .ctrl-btn { padding: 5px 9px; font-size: 0.78em; }
+}
+
+/* iOS input zoom 방지 */
 @media screen and (max-width: 768px) {
   input[type="text"],
   input[type="number"],
+  input[type="email"],
   input[type="date"],
   select {
     font-size: 16px !important;
   }
 }
 
-/* 테이블 가로 스크롤 힌트 (모바일) */
-.scroll-hint::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 24px;
-  background: linear-gradient(to right, transparent, rgba(255,255,255,0.9));
-  pointer-events: none;
-}
-
-/* 부드러운 로딩 애니메이션 */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
 /* 버튼 터치 피드백 */
-button:active {
-  transform: scale(0.97);
-}
+button:active { transform: scale(0.97); }

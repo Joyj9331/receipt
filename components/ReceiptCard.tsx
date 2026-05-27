@@ -15,151 +15,180 @@ interface Props {
 export default function ReceiptCard({ receipt, index, onUpdate, onRemove }: Props) {
   const [collapsed, setCollapsed] = useState(false)
 
-  const handleCompanionToggle = (name: string) => {
-    const current = receipt.companions
-    const next = current.includes(name)
-      ? current.filter((c) => c !== name)
-      : [...current, name]
+  const toggleCompanion = (name: string) => {
+    const next = receipt.companions.includes(name)
+      ? receipt.companions.filter((c) => c !== name)
+      : [...receipt.companions, name]
     onUpdate({ companions: next })
   }
 
   return (
-    <div className="mx-4 mb-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
       {/* 카드 헤더 */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-brand-50 border-b border-brand-100 cursor-pointer"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 16px",
+          background: "var(--bg-page)",
+          borderBottom: collapsed ? "none" : "1px solid var(--border-thin)",
+          cursor: "pointer",
+        }}
         onClick={() => setCollapsed((v) => !v)}
       >
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-brand-700">🧾 영수증 #{index + 1}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontWeight: 900 }}>🧾 영수증 #{index + 1}</span>
           {receipt.isOcrLoading && (
-            <span className="text-xs text-brand-500 animate-pulse">OCR 인식 중…</span>
+            <span style={{ fontSize: "0.78em", color: "var(--text-sub)" }}>
+              OCR 인식 중…
+            </span>
           )}
           {!receipt.isOcrLoading && receipt.amount > 0 && (
-            <span className="text-xs text-green-600 font-semibold">
+            <span style={{ fontSize: "0.85em", color: "var(--safe-color)", fontWeight: 900 }}>
               {receipt.amount.toLocaleString("ko-KR")}원
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemove()
-            }}
-            className="text-red-400 hover:text-red-600 text-lg leading-none p-1"
-            aria-label="영수증 삭제"
+            className="ctrl-btn danger"
+            style={{ padding: "4px 10px", fontSize: "0.78em" }}
+            onClick={(e) => { e.stopPropagation(); onRemove() }}
           >
-            ✕
+            삭제
           </button>
-          <span className="text-gray-400 text-sm">{collapsed ? "▼" : "▲"}</span>
+          <span style={{ color: "var(--text-sub)", fontSize: "0.85em" }}>
+            {collapsed ? "▼" : "▲"}
+          </span>
         </div>
       </div>
 
       {/* 카드 바디 */}
       {!collapsed && (
-        <div className="p-4">
+        <div style={{ padding: "16px" }}>
           {/* 이미지 미리보기 */}
           {receipt.imageUrl && (
-            <div className="mb-4 flex justify-center">
-              <div className="relative w-full max-w-xs h-48 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-                <Image
-                  src={receipt.imageUrl}
-                  alt={`영수증 ${index + 1}`}
-                  fill
-                  className="object-contain"
-                  unoptimized
-                />
-              </div>
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                maxWidth: "260px",
+                height: "160px",
+                margin: "0 auto 16px",
+                borderRadius: "6px",
+                overflow: "hidden",
+                border: "1px solid var(--border-thin)",
+                background: "#f5f5f5",
+              }}
+            >
+              <Image
+                src={receipt.imageUrl}
+                alt={`영수증 ${index + 1}`}
+                fill
+                className="object-contain"
+                unoptimized
+              />
             </div>
           )}
 
-          {/* OCR 인식 텍스트 (접힌 박스) */}
+          {/* OCR 원본 텍스트 */}
           {receipt.ocrText && (
-            <details className="mb-4">
-              <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
-                📝 OCR 인식 원본 텍스트 보기
+            <details style={{ marginBottom: "14px" }}>
+              <summary
+                style={{
+                  fontSize: "0.78em",
+                  color: "var(--text-sub)",
+                  cursor: "pointer",
+                }}
+              >
+                📝 OCR 인식 원문 보기
               </summary>
-              <pre className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded overflow-auto max-h-24 whitespace-pre-wrap">
+              <pre
+                style={{
+                  marginTop: "6px",
+                  fontSize: "0.72em",
+                  color: "var(--text-sub)",
+                  background: "var(--bg-page)",
+                  padding: "8px",
+                  borderRadius: "4px",
+                  overflow: "auto",
+                  maxHeight: "80px",
+                  whiteSpace: "pre-wrap",
+                  fontFamily: "monospace",
+                }}
+              >
                 {receipt.ocrText}
               </pre>
             </details>
           )}
 
           {/* 폼 필드 */}
-          <div className="space-y-3">
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {/* 날짜 */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                📅 날짜
-              </label>
+              <label className="form-label">📅 날짜</label>
               <input
                 type="date"
+                className="form-input"
                 value={receipt.date}
                 onChange={(e) => onUpdate({ date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 text-sm"
               />
             </div>
 
             {/* 금액 */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
+              <label className="form-label">
                 💰 금액 (원)
+                {receipt.isOcrLoading && (
+                  <span style={{ color: "var(--text-sub)", marginLeft: "8px", fontWeight: 700 }}>
+                    자동 인식 중…
+                  </span>
+                )}
               </label>
               <input
                 type="number"
+                className="form-input"
+                style={{ textAlign: "right" }}
                 min={0}
-                value={receipt.amount}
-                onChange={(e) => onUpdate({ amount: parseInt(e.target.value, 10) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 text-sm"
-                placeholder="금액을 입력하세요"
+                value={receipt.amount || ""}
+                placeholder="0"
+                onChange={(e) =>
+                  onUpdate({ amount: parseInt(e.target.value, 10) || 0 })
+                }
               />
-              {receipt.isOcrLoading && (
-                <p className="text-xs text-brand-500 mt-1 animate-pulse">
-                  OCR로 금액 인식 중...
-                </p>
-              )}
             </div>
 
             {/* 사용자 */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                👤 사용자
-              </label>
+              <label className="form-label">👤 사용자</label>
               <select
+                className="form-input"
                 value={receipt.user}
                 onChange={(e) => onUpdate({ user: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 text-sm bg-white"
               >
                 {STAFF_LIST.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
 
             {/* 카테고리 */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                🏷️ 카테고리
-              </label>
-              <div className="flex flex-wrap gap-2">
+              <label className="form-label">🏷️ 카테고리</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {CATEGORY_LIST.map((cat) => (
                   <button
                     key={cat}
                     type="button"
+                    className={`chip ${receipt.category === cat ? "active" : ""}`}
                     onClick={() =>
                       onUpdate({
                         category: cat,
-                        customCategory: cat === "직접입력" ? receipt.customCategory : undefined,
+                        customCategory:
+                          cat === "직접입력" ? receipt.customCategory : undefined,
                       })
                     }
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      receipt.category === cat
-                        ? "bg-brand-700 text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-brand-100 hover:text-brand-700"
-                    }`}
                   >
                     {cat}
                   </button>
@@ -168,32 +197,28 @@ export default function ReceiptCard({ receipt, index, onUpdate, onRemove }: Prop
               {receipt.category === "직접입력" && (
                 <input
                   type="text"
+                  className="form-input"
+                  style={{ marginTop: "8px" }}
+                  placeholder="카테고리를 입력하세요"
                   value={receipt.customCategory ?? ""}
                   onChange={(e) => onUpdate({ customCategory: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 text-sm"
-                  placeholder="카테고리를 직접 입력하세요"
                 />
               )}
             </div>
 
             {/* 동반직원 */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                👥 동반직원 (복수 선택)
-              </label>
-              <div className="flex flex-wrap gap-2">
+              <label className="form-label">👥 동반직원 (중복 선택)</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {STAFF_LIST.filter((s) => s !== receipt.user).map((name) => (
                   <button
                     key={name}
                     type="button"
-                    onClick={() => handleCompanionToggle(name)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      receipt.companions.includes(name)
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-700"
-                    }`}
+                    className={`chip green ${receipt.companions.includes(name) ? "active" : ""}`}
+                    onClick={() => toggleCompanion(name)}
                   >
-                    {receipt.companions.includes(name) ? "✓ " : ""}{name}
+                    {receipt.companions.includes(name) ? "✓ " : ""}
+                    {name}
                   </button>
                 ))}
               </div>
@@ -201,15 +226,13 @@ export default function ReceiptCard({ receipt, index, onUpdate, onRemove }: Prop
 
             {/* 비고 */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                📝 비고 / 가맹점명
-              </label>
+              <label className="form-label">📝 비고 / 가맹점명</label>
               <input
                 type="text"
+                className="form-input"
+                placeholder="가맹점명 또는 메모"
                 value={receipt.note}
                 onChange={(e) => onUpdate({ note: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 text-sm"
-                placeholder="가맹점명 또는 메모를 입력하세요"
               />
             </div>
           </div>
