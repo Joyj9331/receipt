@@ -14,7 +14,7 @@ function ErrorContent() {
     <div className="login-screen">
       <div className="login-card">
         <div style={{ fontSize: "2.4em", marginBottom: "12px" }}>
-          {isAccessDenied ? "🚫" : "⚠️"}
+          {isAccessDenied ? "✕" : "!"}
         </div>
         <h1 className="login-title">새모양 F&amp;B</h1>
         <p className="login-sub">법인카드 경비관리 시스템</p>

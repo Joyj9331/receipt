@@ -15,7 +15,7 @@ export default function SummaryTable({ records, onDeleteRecord, onClearAll }: Pr
     <div className="card">
       <h3 className="section-title">
         <span>
-          📊 누적 지출 내역
+          ▣ 누적 지출 내역
           {records.length > 0 && (
             <span
               style={{
@@ -56,7 +56,7 @@ export default function SummaryTable({ records, onDeleteRecord, onClearAll }: Pr
             color: "var(--text-sub)",
           }}
         >
-          <div style={{ fontSize: "2em", marginBottom: "8px" }}>📭</div>
+          <div style={{ fontSize: "2em", marginBottom: "8px", color: "var(--border-thin)" }}>○</div>
           <p style={{ margin: 0, fontSize: "0.9em" }}>아직 저장된 내역이 없습니다.</p>
           <p style={{ margin: "4px 0 0", fontSize: "0.78em" }}>
             영수증을 업로드하고 아래 버튼으로 저장하세요.

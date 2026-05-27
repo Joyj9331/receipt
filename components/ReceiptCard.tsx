@@ -39,7 +39,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
         onClick={() => setCollapsed((v) => !v)}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontWeight: 900 }}>🧾 영수증 #{index + 1}</span>
+          <span style={{ fontWeight: 900 }}>■ 영수증 #{index + 1}</span>
           {receipt.isOcrLoading && (
             <span style={{ fontSize: "0.78em", color: "var(--text-sub)" }}>
               OCR 인식 중…
@@ -103,7 +103,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
                   cursor: "pointer",
                 }}
               >
-                📝 OCR 인식 원문 보기
+                · OCR 인식 원문 보기
               </summary>
               <pre
                 style={{
@@ -128,7 +128,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {/* 날짜 */}
             <div>
-              <label className="form-label">📅 날짜</label>
+              <label className="form-label">날짜</label>
               <input
                 type="date"
                 className="form-input"
@@ -140,7 +140,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
             {/* 금액 */}
             <div>
               <label className="form-label">
-                💰 금액 (원)
+                금액 (원)
                 {receipt.isOcrLoading && (
                   <span style={{ color: "var(--text-sub)", marginLeft: "8px", fontWeight: 700 }}>
                     자동 인식 중…
@@ -162,7 +162,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
 
             {/* 사용자 */}
             <div>
-              <label className="form-label">👤 사용자</label>
+              <label className="form-label">사용자</label>
               <select
                 className="form-input"
                 value={receipt.user}
@@ -180,7 +180,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
 
             {/* 카테고리 */}
             <div>
-              <label className="form-label">🏷️ 카테고리</label>
+              <label className="form-label">카테고리</label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {CATEGORY_LIST.map((cat) => (
                   <button
@@ -213,7 +213,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
 
             {/* 동반직원 */}
             <div>
-              <label className="form-label">👥 동반직원 (중복 선택)</label>
+              <label className="form-label">동반직원 (중복 선택)</label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {staffList.filter((s) => s !== receipt.user).map((name) => (
                   <button
@@ -231,7 +231,7 @@ export default function ReceiptCard({ receipt, index, staffList, onUpdate, onRem
 
             {/* 비고 */}
             <div>
-              <label className="form-label">📝 비고 / 가맹점명</label>
+              <label className="form-label">비고 / 가맹점명</label>
               <input
                 type="text"
                 className="form-input"

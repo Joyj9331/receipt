@@ -148,7 +148,7 @@ export default function Home() {
   const handleDownload = () => {
     if (savedRecords.length === 0) { showToast("저장된 내역이 없습니다.", "err"); return }
     downloadExcel(savedRecords)
-    showToast("📥 엑셀 파일 다운로드 중!", "ok")
+    showToast("↓ 엑셀 파일 다운로드 중", "ok")
   }
 
   // ── 이메일 발송 ──
@@ -176,7 +176,7 @@ export default function Home() {
       })
       const data = (await res.json()) as { success?: boolean; error?: string }
       if (res.ok && data.success) {
-        showToast("📧 이메일이 성공적으로 발송되었습니다!", "ok")
+        showToast("✉ 이메일이 성공적으로 발송되었습니다", "ok")
       } else {
         showToast(`발송 실패: ${data.error ?? "알 수 없는 오류"}`, "err")
       }
@@ -295,14 +295,14 @@ export default function Home() {
               style={{ width: "100%", marginBottom: "8px", padding: "14px" }}
               onClick={handleSaveToTable}
             >
-              🔥 {receipts.length}장 영수증 — 테이블에 저장
+              ▶ {receipts.length}장 영수증 — 테이블에 저장
             </button>
           )}
 
           {savedRecords.length > 0 && (
             <div style={{ display: "flex", gap: "8px" }}>
               <button className="action-btn safe" onClick={handleDownload}>
-                📥 엑셀 저장
+                ↓ 엑셀 저장
               </button>
               <button
                 className="action-btn primary"
@@ -310,7 +310,7 @@ export default function Home() {
                 disabled={isSending}
                 style={{ opacity: isSending ? 0.6 : 1 }}
               >
-                {isSending ? "⏳ 발송 중…" : "📧 메일 전송"}
+                {isSending ? "··· 발송 중" : "✉ 메일 전송"}
               </button>
             </div>
           )}
