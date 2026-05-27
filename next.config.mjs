@@ -5,6 +5,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // next-auth App Router 호환성
+  transpilePackages: ["next-auth"],
 };
 
 export default nextConfig;
